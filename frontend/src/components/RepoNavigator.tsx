@@ -1,0 +1,296 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Trash2, Plus, ExternalLink, Eye, EyeOff } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+
+interface Repo {
+  id: string
+  owner: string
+  name: string
+  url: string
+  connectedAt: string
+  openIssuesCount: number
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+export default function RepoNavigator() {
+  const [repos, setRepos] = useState<Repo[]>([])
+  const [loading, setLoading] = useState(true)
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
+  const [repoUrl, setRepoUrl] = useState('')
+  const [githubPat, setGithubPat] = useState('')
+  const [showPat, setShowPat] = useState(false)
+  const [connecting, setConnecting] = useState(false)
+  const navigate = useNavigate()
+  const { toast } = useToast()
+
+  useEffect(() => {
+    fetchRepos()
+  }, [])
+
+  const fetchRepos = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/repos`)
+      if (response.ok) {
+        const data = await response.json()
+        setRepos(data)
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to fetch repositories",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to connect to backend",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const connectRepo = async () => {
+    if (!repoUrl || !githubPat) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setConnecting(true)
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/repos/connect`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          repoUrl,
+          githubPat
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        toast({
+          title: "Success",
+          description: "Repository connected successfully"
+        })
+        setIsConnectModalOpen(false)
+        setRepoUrl('')
+        setGithubPat('')
+        await fetchRepos()
+        navigate(`/repos/${data.id}/issues`)
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.detail || "Failed to connect repository",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to connect to backend",
+        variant: "destructive"
+      })
+    } finally {
+      setConnecting(false)
+    }
+  }
+
+  const deleteRepo = async (repoId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/repos/${repoId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Repository deleted successfully"
+        })
+        await fetchRepos()
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to delete repository",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to connect to backend",
+        variant: "destructive"
+      })
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Loading repositories...</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Repository Navigator</h2>
+          <p className="text-muted-foreground">
+            Connect and manage your GitHub repositories
+          </p>
+        </div>
+        <Dialog open={isConnectModalOpen} onOpenChange={setIsConnectModalOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Connect Repository
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Connect Repository</DialogTitle>
+              <DialogDescription>
+                Enter the GitHub repository URL and your Personal Access Token
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="repo-url">Repository URL</Label>
+                <Input
+                  id="repo-url"
+                  placeholder="https://github.com/owner/repo"
+                  value={repoUrl}
+                  onChange={(e) => setRepoUrl(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="github-pat">GitHub Personal Access Token</Label>
+                <div className="relative">
+                  <Input
+                    id="github-pat"
+                    type={showPat ? "text" : "password"}
+                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                    value={githubPat}
+                    onChange={(e) => setGithubPat(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPat(!showPat)}
+                  >
+                    {showPat ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="submit"
+                onClick={connectRepo}
+                disabled={connecting}
+              >
+                {connecting ? "Connecting..." : "Connect"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {repos.length === 0 ? (
+        <Card className="text-center py-12">
+          <CardContent>
+            <div className="mx-auto max-w-sm">
+              <h3 className="text-lg font-semibold">No repositories connected</h3>
+              <p className="text-muted-foreground mt-2">
+                Connect your first GitHub repository to get started with issue automation
+              </p>
+              <Button
+                className="mt-4"
+                onClick={() => setIsConnectModalOpen(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Connect Repository
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {repos.map((repo) => (
+            <Card key={repo.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg">
+                      {repo.owner}/{repo.name}
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-1">
+                      <ExternalLink className="h-3 w-3" />
+                      <a
+                        href={repo.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline"
+                      >
+                        View on GitHub
+                      </a>
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => deleteRepo(repo.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="text-sm text-muted-foreground">
+                    Connected: {new Date(repo.connectedAt).toLocaleDateString()}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">
+                      {repo.openIssuesCount} open issues
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={() => navigate(`/repos/${repo.id}/issues`)}
+                    >
+                      View Issues
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
