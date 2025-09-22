@@ -380,23 +380,31 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                       <div>
                         <h5 className="font-semibold mb-2">Risks</h5>
                         <ul className="text-sm space-y-1">
-                          {session.structured_output.risks.map((risk, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <span className="text-red-500 mt-1">•</span>
-                              {risk}
-                            </li>
-                          ))}
+                          {session.structured_output.risks.length > 0 ? (
+                            session.structured_output.risks.map((risk, index) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <span className="text-red-500 mt-1">•</span>
+                                {risk}
+                              </li>
+                            ))
+                          ) : (
+                            <li className="text-sm text-muted-foreground">No risks identified</li>
+                          )}
                         </ul>
                       </div>
                       <div>
                         <h5 className="font-semibold mb-2">Dependencies</h5>
                         <ul className="text-sm space-y-1">
-                          {session.structured_output.dependencies.map((dep, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <span className="text-blue-500 mt-1">•</span>
-                              {dep}
-                            </li>
-                          ))}
+                          {session.structured_output.dependencies.length > 0 ? (
+                            session.structured_output.dependencies.map((dep, index) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <span className="text-blue-500 mt-1">•</span>
+                                {dep}
+                              </li>
+                            ))
+                          ) : (
+                            <li className="text-sm text-muted-foreground">No dependencies found</li>
+                          )}
                         </ul>
                       </div>
                     </div>
