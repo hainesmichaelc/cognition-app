@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
@@ -63,7 +64,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
   const [isExecuting, setIsExecuting] = useState(false)
   const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null)
   const [isPlanApproved, setIsPlanApproved] = useState(false)
-  const [showApprovalSection, setShowApprovalSection] = useState(false)
+  const [showApprovalDialog, setShowApprovalDialog] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -84,6 +85,8 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     if (!issue) return
 
     setIsScoping(true)
+    setIsPlanApproved(false)
+    setShowApprovalDialog(false)
     try {
       const response = await fetch(`${API_BASE_URL}/api/issues/${issue.id}/scope`, {
         method: 'POST',
@@ -129,9 +132,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
           const data = await response.json()
           setSession(data)
           
-          if (data.status === 'completed' && data.structured_output && !isPlanApproved && !showApprovalSection) {
-            setShowApprovalSection(true)
-          }
           
           if (data.status === 'completed' && data.structured_output?.pr_url && issue) {
             onIssueUpdate?.(issue.id, 'PR Submitted', data.structured_output.pr_url)
@@ -180,29 +180,12 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     } catch {
       toast({
         title: "Error",
-        description: "Failed to connect to backend",
+        description: "Failed to send follow-up",
         variant: "destructive"
       })
     }
   }
 
-  const approvePlan = () => {
-    setIsPlanApproved(true)
-    setShowApprovalSection(false)
-    toast({
-      title: "Plan Approved",
-      description: "You can now execute the plan"
-    })
-  }
-
-  const rejectPlan = () => {
-    setIsPlanApproved(false)
-    setShowApprovalSection(false)
-    toast({
-      title: "Plan Rejected",
-      description: "You can send follow-up instructions to refine the plan"
-    })
-  }
 
   const executePlan = async () => {
     if (!issue || !branchName.trim() || !targetBranch.trim() || !isPlanApproved) {
@@ -224,8 +207,10 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          sessionId: sessionId,
           branchName,
-          targetBranch
+          targetBranch,
+          approved: true
         })
       })
 
@@ -276,7 +261,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     setBranchName('')
     setTargetBranch('main')
     setIsPlanApproved(false)
-    setShowApprovalSection(false)
+    setShowApprovalDialog(false)
     onClose()
   }
 
@@ -423,7 +408,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                       </div>
                     </div>
 
-                    {showApprovalSection && (
+                    {session.status === 'completed' && !isPlanApproved && !session.structured_output?.pr_url && (
                       <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <CheckCircle className="h-5 w-5 text-blue-600" />
@@ -432,15 +417,31 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                         <p className="text-sm text-blue-700 mb-4">
                           Please review the implementation plan above. Do you approve this plan for execution?
                         </p>
-                        <div className="flex gap-3">
-                          <Button onClick={approvePlan} className="bg-green-600 hover:bg-green-700">
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Approve Plan
-                          </Button>
-                          <Button onClick={rejectPlan} variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
-                            Reject Plan
-                          </Button>
-                        </div>
+                        <AlertDialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
+                          <AlertDialogTrigger asChild>
+                            <Button className="bg-green-600 hover:bg-green-700">
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Approve & Execute Plan
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Approve Plan Execution</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to execute this plan? Devin will create a new branch, implement the changes, and open a pull request.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => {
+                                setIsPlanApproved(true)
+                                setShowApprovalDialog(false)
+                              }}>
+                                Yes, Execute Plan
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     )}
 
@@ -491,33 +492,40 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                       </Button>
                     </div>
 
-                    <div className="border-t pt-4">
-                      <h5 className="font-semibold mb-2">Execute Plan</h5>
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <Label htmlFor="branch-name">Branch Name</Label>
-                          <Input
-                            id="branch-name"
-                            value={branchName}
-                            onChange={(e) => setBranchName(e.target.value)}
-                            placeholder="feat/issue-123-implementation"
-                          />
+                    {isPlanApproved && !session.structured_output?.pr_url && (
+                      <div className="border-t pt-4">
+                        <h5 className="font-semibold mb-2">Execute Plan</h5>
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <Label htmlFor="branch-name">Branch Name</Label>
+                            <Input
+                              id="branch-name"
+                              value={branchName}
+                              onChange={(e) => setBranchName(e.target.value)}
+                              placeholder="feat/issue-123-implementation"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="target-branch">Target Branch</Label>
+                            <Input
+                              id="target-branch"
+                              value={targetBranch}
+                              onChange={(e) => setTargetBranch(e.target.value)}
+                              placeholder="main"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <Label htmlFor="target-branch">Target Branch</Label>
-                          <Input
-                            id="target-branch"
-                            value={targetBranch}
-                            onChange={(e) => setTargetBranch(e.target.value)}
-                            placeholder="main"
-                          />
+                        <div className="flex gap-2">
+                          <Button onClick={executePlan} disabled={isExecuting || !branchName.trim() || !targetBranch.trim()}>
+                            <Play className="mr-2 h-4 w-4" />
+                            {isExecuting ? 'Executing...' : 'Execute Plan'}
+                          </Button>
+                          <Button variant="outline" onClick={() => setIsPlanApproved(false)}>
+                            Cancel
+                          </Button>
                         </div>
                       </div>
-                      <Button onClick={executePlan} disabled={isExecuting || !branchName.trim() || !targetBranch.trim() || !isPlanApproved}>
-                        <Play className="mr-2 h-4 w-4" />
-                        {isExecuting ? 'Executing...' : 'Execute Plan'}
-                      </Button>
-                    </div>
+                    )}
                   </>
                 )}
               </CardContent>

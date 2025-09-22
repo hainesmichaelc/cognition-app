@@ -84,6 +84,7 @@ class ExecuteRequest(BaseModel):
     sessionId: str
     branchName: str
     targetBranch: str = "main"
+    approved: bool = True
 
 
 class RepoResponse(BaseModel):
