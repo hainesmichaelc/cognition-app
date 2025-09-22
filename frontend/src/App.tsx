@@ -22,7 +22,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/repos" replace />} />
             <Route path="/repos" element={<RepoNavigator />} />
-            <Route path="/repos/:repoId/issues" element={<IssueDashboard />} />
+            <Route path="/repos/:owner/:name/issues" element={<IssueDashboard />} />
           </Routes>
         </main>
         

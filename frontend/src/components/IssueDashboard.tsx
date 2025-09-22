@@ -47,7 +47,7 @@ interface DevinSession {
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 export default function IssueDashboard() {
-  const { repoId } = useParams<{ repoId: string }>()
+  const { owner, name } = useParams<{ owner: string; name: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
   const { activeSessions, sessionDetails } = useSessionManager()
@@ -66,14 +66,14 @@ export default function IssueDashboard() {
   const pageSize = 20
 
   useEffect(() => {
-    if (repoId) {
+    if (owner && name) {
       fetchIssues()
       fetchRepoData()
     }
-  }, [repoId, currentPage, searchQuery, selectedLabel])
+  }, [owner, name, currentPage, searchQuery, selectedLabel])
 
   const fetchIssues = useCallback(async () => {
-    if (!repoId) return
+    if (!owner || !name) return
     
     try {
       const params = new URLSearchParams()
@@ -82,7 +82,7 @@ export default function IssueDashboard() {
       params.append('page', currentPage.toString())
       params.append('pageSize', pageSize.toString())
       
-      const response = await fetch(`${API_BASE_URL}/api/repos/${repoId}/issues?${params}`)
+      const response = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${params}`)
       if (response.ok) {
         const data = await response.json()
         setIssues(data)
@@ -92,7 +92,7 @@ export default function IssueDashboard() {
         if (selectedLabel) totalParams.append('label', selectedLabel)
         totalParams.append('pageSize', '1000') // Get all issues to count
         
-        const totalResponse = await fetch(`${API_BASE_URL}/api/repos/${repoId}/issues?${totalParams}`)
+        const totalResponse = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${totalParams}`)
         if (totalResponse.ok) {
           const totalData = await totalResponse.json()
           setTotalIssues(totalData.length)
@@ -114,16 +114,16 @@ export default function IssueDashboard() {
     } finally {
       setLoading(false)
     }
-  }, [repoId, currentPage, searchQuery, selectedLabel])
+  }, [owner, name, currentPage, searchQuery, selectedLabel])
 
   const fetchRepoData = useCallback(async () => {
-    if (!repoId) return
+    if (!owner || !name) return
     
     try {
       const response = await fetch(`${API_BASE_URL}/api/repos`)
       if (response.ok) {
         const repos = await response.json()
-        const repo = repos.find((r: {id: string, owner: string, name: string, url: string}) => r.id === repoId)
+        const repo = repos.find((r: {id: string, owner: string, name: string, url: string}) => r.id === `${owner}/${name}`)
         if (repo) {
           setRepoData({ owner: repo.owner, name: repo.name, url: repo.url })
         }
@@ -131,14 +131,14 @@ export default function IssueDashboard() {
     } catch (error) {
       console.error('Failed to fetch repository data:', error)
     }
-  }, [repoId])
+  }, [owner, name])
 
   const resyncRepo = async () => {
-    if (!repoId) return
+    if (!owner || !name) return
     
     setSyncing(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/api/repos/${repoId}/resync`, {
+      const response = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/resync`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
