@@ -61,6 +61,8 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
   const [isScoping, setIsScoping] = useState(false)
   const [isExecuting, setIsExecuting] = useState(false)
   const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null)
+  const [isPlanApproved, setIsPlanApproved] = useState(false)
+  const [showApprovalSection, setShowApprovalSection] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -107,7 +109,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
           variant: "destructive"
         })
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to connect to backend",
@@ -125,6 +127,10 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
         if (response.ok) {
           const data = await response.json()
           setSession(data)
+          
+          if (data.status === 'completed' && data.structured_output && !isPlanApproved && !showApprovalSection) {
+            setShowApprovalSection(true)
+          }
           
           if (data.status === 'completed' && data.structured_output?.pr_url && issue) {
             onIssueUpdate?.(issue.id, 'PR Submitted', data.structured_output.pr_url)
@@ -170,7 +176,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
           variant: "destructive"
         })
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to connect to backend",
@@ -179,8 +185,35 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     }
   }
 
+  const approvePlan = () => {
+    setIsPlanApproved(true)
+    setShowApprovalSection(false)
+    toast({
+      title: "Plan Approved",
+      description: "You can now execute the plan"
+    })
+  }
+
+  const rejectPlan = () => {
+    setIsPlanApproved(false)
+    setShowApprovalSection(false)
+    toast({
+      title: "Plan Rejected",
+      description: "You can send follow-up instructions to refine the plan"
+    })
+  }
+
   const executePlan = async () => {
-    if (!issue || !branchName.trim() || !targetBranch.trim()) return
+    if (!issue || !branchName.trim() || !targetBranch.trim() || !isPlanApproved) {
+      if (!isPlanApproved) {
+        toast({
+          title: "Approval Required",
+          description: "Please approve the plan before executing",
+          variant: "destructive"
+        })
+      }
+      return
+    }
 
     setIsExecuting(true)
     try {
@@ -210,7 +243,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
           variant: "destructive"
         })
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to connect to backend",
@@ -241,6 +274,8 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     setFollowUpMessage('')
     setBranchName('')
     setTargetBranch('main')
+    setIsPlanApproved(false)
+    setShowApprovalSection(false)
     onClose()
   }
 
@@ -387,6 +422,36 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                       </div>
                     </div>
 
+                    {showApprovalSection && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <CheckCircle className="h-5 w-5 text-blue-600" />
+                          <h5 className="font-semibold text-blue-800">Plan Review Required</h5>
+                        </div>
+                        <p className="text-sm text-blue-700 mb-4">
+                          Please review the implementation plan above. Do you approve this plan for execution?
+                        </p>
+                        <div className="flex gap-3">
+                          <Button onClick={approvePlan} className="bg-green-600 hover:bg-green-700">
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Approve Plan
+                          </Button>
+                          <Button onClick={rejectPlan} variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
+                            Reject Plan
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {isPlanApproved && !session.structured_output?.pr_url && (
+                      <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">Plan Approved - Ready for Execution</span>
+                        </div>
+                      </div>
+                    )}
+
                     {session.structured_output.pr_url && (
                       <div className="bg-green-50 border border-green-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-2">
@@ -447,7 +512,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                           />
                         </div>
                       </div>
-                      <Button onClick={executePlan} disabled={isExecuting || !branchName.trim() || !targetBranch.trim()}>
+                      <Button onClick={executePlan} disabled={isExecuting || !branchName.trim() || !targetBranch.trim() || !isPlanApproved}>
                         <Play className="mr-2 h-4 w-4" />
                         {isExecuting ? 'Executing...' : 'Execute Plan'}
                       </Button>
