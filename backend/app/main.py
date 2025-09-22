@@ -622,12 +622,13 @@ async def scope_issue(issue_id: int, request: ScopeRequest):
     issue_url = f"{repo_url}/issues/{issue_number}"
     additional_context = request.additionalContext or "none"
 
-    readme_context = devin_api._read_readme_content()
-
     scoping_prompt = f"""You are Devin, scoping a GitHub issue for \
 feasibility and a concrete, developer-ready plan.
 
-{readme_context}
+To understand the codebase architecture and context, please read all README.md files \
+present in the repository. Start by reading the main README.md in the root, then explore \
+any README.md files in subdirectories (like backend/, frontend/, docs/, etc.) to get \
+comprehensive context about the project structure, technology stack, and development workflow.
 
 Repo: {repo_url}
 Issue: {issue_title} (#{issue_number})
@@ -711,13 +712,12 @@ async def get_devin_session(session_id: str):
 
 @app.post("/api/devin/{session_id}/message")
 async def send_message_to_devin(session_id: str, request: MessageRequest):
-    readme_context = devin_api._read_readme_content()
-
     follow_up_prompt = f"""Apply these follow-up instructions to the \
 existing plan:
 {request.message}
 
-{readme_context}
+If you need additional codebase context, please read the relevant README.md files \
+in the repository to understand the project structure and architecture.
 
 Then update the Structured Output JSON accordingly (plan steps, risks, \
 estimates, confidence, progress_pct)."""
@@ -740,11 +740,11 @@ estimates, confidence, progress_pct)."""
 
 @app.post("/api/issues/{issue_id}/execute")
 async def execute_plan(issue_id: int, request: ExecuteRequest):
-    readme_context = devin_api._read_readme_content()
-
     execution_prompt = f"""Execute the approved plan for the same issue.
 
-{readme_context}
+If you need codebase context during implementation, please read the README.md files \
+in the repository to understand the project structure, development workflow, and \
+deployment processes.
 
 Requirements:
 - Create a new branch named: {request.branchName} from \
