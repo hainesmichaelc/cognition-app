@@ -119,6 +119,77 @@ class DevinAPIService:
         if not self.api_key:
             raise ValueError("DEVIN_API_KEY environment variable is required")
 
+    def _read_readme_content(self) -> str:
+        """Read all README.md files found in the codebase"""
+        readme_content = "\n\n## CODEBASE DOCUMENTATION\n\n"
+
+        try:
+            current_dir = os.path.dirname(__file__)
+            repo_root = current_dir
+            while repo_root != os.path.dirname(repo_root):
+                if (os.path.exists(os.path.join(repo_root, '.git')) or
+                        os.path.exists(os.path.join(repo_root,
+                                                    'package.json')) or
+                        os.path.exists(os.path.join(repo_root,
+                                                    'pyproject.toml'))):
+                    break
+                repo_root = os.path.dirname(repo_root)
+
+            readme_files = []
+            for root, dirs, files in os.walk(repo_root):
+                dirs[:] = [d for d in dirs if d not in {
+                    '.git', 'node_modules', '__pycache__', '.pytest_cache',
+                    'dist', 'build', '.venv', 'venv', '.mypy_cache'
+                }]
+                for file in files:
+                    if file.lower() == 'readme.md':
+                        readme_files.append(os.path.join(root, file))
+
+            readme_files.sort()
+
+            for readme_path in readme_files:
+                try:
+                    with open(readme_path, 'r', encoding='utf-8') as f:
+                        content = f.read().strip()
+                    if content:  # Only include non-empty README files
+                        rel_path = os.path.relpath(readme_path, repo_root)
+                        section_name = self._get_readme_section_name(rel_path)
+                        readme_content += f"### {section_name}\n\n"
+                        readme_content += content + "\n\n"
+                except Exception:
+                    continue
+
+            if len(readme_files) == 0:
+                readme_content += ("### No Documentation Found\n\n"
+                                   "No README.md files found in codebase.\n\n")
+
+        except Exception:
+            readme_content += ("### Documentation Error\n\n"
+                               "Unable to read README files.\n\n")
+
+        return readme_content
+
+    def _get_readme_section_name(self, rel_path: str) -> str:
+        """Generate a descriptive section name from README file path"""
+        if rel_path == 'README.md':
+            return "Project Overview"
+        dir_name = os.path.dirname(rel_path)
+        if not dir_name or dir_name == '.':
+            return "Root Documentation"
+        parts = dir_name.split(os.sep)
+        section_parts = []
+        for part in parts:
+            if part in {'frontend', 'client', 'ui', 'web'}:
+                section_parts.append("Frontend")
+            elif part in {'backend', 'server', 'api'}:
+                section_parts.append("Backend")
+            elif part in {'docs', 'documentation'}:
+                section_parts.append("Documentation")
+            else:
+                clean_part = part.replace('-', ' ').replace('_', ' ')
+                section_parts.append(clean_part.title())
+        return " - ".join(section_parts) + " Documentation"
+
     async def create_session(self, prompt: str) -> Dict[str, Any]:
         """Create a new Devin session with structured output enabled"""
         async with httpx.AsyncClient() as client:
@@ -550,8 +621,12 @@ async def scope_issue(issue_id: int, request: ScopeRequest):
     issue_url = f"{repo_url}/issues/{issue_number}"
     additional_context = request.additionalContext or "none"
 
+    readme_context = devin_api._read_readme_content()
+
     scoping_prompt = f"""You are Devin, scoping a GitHub issue for \
 feasibility and a concrete, developer-ready plan.
+
+{readme_context}
 
 Repo: {repo_url}
 Issue: {issue_title} (#{issue_number})
@@ -635,9 +710,13 @@ async def get_devin_session(session_id: str):
 
 @app.post("/api/devin/{session_id}/message")
 async def send_message_to_devin(session_id: str, request: MessageRequest):
+    readme_context = devin_api._read_readme_content()
+
     follow_up_prompt = f"""Apply these follow-up instructions to the \
 existing plan:
 {request.message}
+
+{readme_context}
 
 Then update the Structured Output JSON accordingly (plan steps, risks, \
 estimates, confidence, progress_pct)."""
@@ -660,7 +739,11 @@ estimates, confidence, progress_pct)."""
 
 @app.post("/api/issues/{issue_id}/execute")
 async def execute_plan(issue_id: int, request: ExecuteRequest):
+    readme_context = devin_api._read_readme_content()
+
     execution_prompt = f"""Execute the approved plan for the same issue.
+
+{readme_context}
 
 Requirements:
 - Create a new branch named: {request.branchName} from \
