@@ -208,7 +208,7 @@ class DevinAPIService:
                 section_parts.append(clean_part.title())
         return " - ".join(section_parts) + " Documentation"
 
-    async def create_session(self, prompt: str) -> Dict[str, Any]:
+    async def create_session(self, prompt: str, wait_for_approval: bool = True) -> Dict[str, Any]:
         """Create a new Devin session with structured output enabled"""
         async with httpx.AsyncClient() as client:
             headers = {
@@ -218,7 +218,8 @@ class DevinAPIService:
 
             payload = {
                 "prompt": prompt,
-                "unlisted": True
+                "unlisted": True,
+                "wait_for_approval": wait_for_approval
             }
 
             response = await client.post(
@@ -739,7 +740,7 @@ Guidelines:
 - Keep Structured Output updated as you refine the plan"""
 
     try:
-        session_response = await devin_api.create_session(scoping_prompt)
+        session_response = await devin_api.create_session(scoping_prompt, wait_for_approval=True)
         session_id = session_response.get("session_id")
 
         if not session_id:
