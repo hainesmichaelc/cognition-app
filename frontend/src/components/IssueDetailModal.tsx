@@ -283,7 +283,14 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
             </a>
           </DialogTitle>
           <DialogDescription>
-            Created by {issue.author} • {issue.age_days} days ago
+            Created by <a
+              href={`https://github.com/${issue.author}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              {issue.author}
+            </a> • {issue.age_days} days ago
           </DialogDescription>
         </DialogHeader>
 
