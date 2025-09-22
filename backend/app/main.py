@@ -120,33 +120,75 @@ class DevinAPIService:
             raise ValueError("DEVIN_API_KEY environment variable is required")
 
     def _read_readme_content(self) -> str:
-        """Read README content from frontend and backend directories"""
+        """Read all README.md files found in the codebase"""
         readme_content = "\n\n## CODEBASE DOCUMENTATION\n\n"
 
         try:
-            frontend_readme_path = os.path.join(
-                os.path.dirname(__file__), "../../frontend/README.md"
-            )
-            if os.path.exists(frontend_readme_path):
-                with open(frontend_readme_path, 'r', encoding='utf-8') as f:
-                    frontend_content = f.read()
-                readme_content += "### Frontend Documentation\n\n"
-                readme_content += frontend_content + "\n\n"
+            current_dir = os.path.dirname(__file__)
+            repo_root = current_dir
+            while repo_root != os.path.dirname(repo_root):
+                if (os.path.exists(os.path.join(repo_root, '.git')) or
+                        os.path.exists(os.path.join(repo_root,
+                                                    'package.json')) or
+                        os.path.exists(os.path.join(repo_root,
+                                                    'pyproject.toml'))):
+                    break
+                repo_root = os.path.dirname(repo_root)
 
-            backend_readme_path = os.path.join(
-                os.path.dirname(__file__), "../README.md"
-            )
-            if os.path.exists(backend_readme_path):
-                with open(backend_readme_path, 'r', encoding='utf-8') as f:
-                    backend_content = f.read()
-                readme_content += "### Backend Documentation\n\n"
-                readme_content += backend_content + "\n\n"
+            readme_files = []
+            for root, dirs, files in os.walk(repo_root):
+                dirs[:] = [d for d in dirs if d not in {
+                    '.git', 'node_modules', '__pycache__', '.pytest_cache',
+                    'dist', 'build', '.venv', 'venv', '.mypy_cache'
+                }]
+                for file in files:
+                    if file.lower() == 'readme.md':
+                        readme_files.append(os.path.join(root, file))
+
+            readme_files.sort()
+
+            for readme_path in readme_files:
+                try:
+                    with open(readme_path, 'r', encoding='utf-8') as f:
+                        content = f.read().strip()
+                    if content:  # Only include non-empty README files
+                        rel_path = os.path.relpath(readme_path, repo_root)
+                        section_name = self._get_readme_section_name(rel_path)
+                        readme_content += f"### {section_name}\n\n"
+                        readme_content += content + "\n\n"
+                except Exception:
+                    continue
+
+            if len(readme_files) == 0:
+                readme_content += ("### No Documentation Found\n\n"
+                                   "No README.md files found in codebase.\n\n")
 
         except Exception:
             readme_content += ("### Documentation Error\n\n"
                                "Unable to read README files.\n\n")
 
         return readme_content
+
+    def _get_readme_section_name(self, rel_path: str) -> str:
+        """Generate a descriptive section name from README file path"""
+        if rel_path == 'README.md':
+            return "Project Overview"
+        dir_name = os.path.dirname(rel_path)
+        if not dir_name or dir_name == '.':
+            return "Root Documentation"
+        parts = dir_name.split(os.sep)
+        section_parts = []
+        for part in parts:
+            if part in {'frontend', 'client', 'ui', 'web'}:
+                section_parts.append("Frontend")
+            elif part in {'backend', 'server', 'api'}:
+                section_parts.append("Backend")
+            elif part in {'docs', 'documentation'}:
+                section_parts.append("Documentation")
+            else:
+                clean_part = part.replace('-', ' ').replace('_', ' ')
+                section_parts.append(clean_part.title())
+        return " - ".join(section_parts) + " Documentation"
 
     async def create_session(self, prompt: str) -> Dict[str, Any]:
         """Create a new Devin session with structured output enabled"""
