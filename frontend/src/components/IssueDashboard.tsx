@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ArrowLeft, Search, RefreshCw, X } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import IssueDetailModal from './IssueDetailModal'
@@ -35,12 +37,15 @@ export default function IssueDashboard() {
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalIssues, setTotalIssues] = useState(0)
+  const pageSize = 20
 
   useEffect(() => {
     if (repoId) {
       fetchIssues()
     }
-  }, [repoId])
+  }, [repoId, currentPage, searchQuery, selectedLabel])
 
   const fetchIssues = async () => {
     if (!repoId) return
@@ -49,11 +54,24 @@ export default function IssueDashboard() {
       const params = new URLSearchParams()
       if (searchQuery) params.append('q', searchQuery)
       if (selectedLabel) params.append('label', selectedLabel)
+      params.append('page', currentPage.toString())
+      params.append('pageSize', pageSize.toString())
       
       const response = await fetch(`${API_BASE_URL}/api/repos/${repoId}/issues?${params}`)
       if (response.ok) {
         const data = await response.json()
         setIssues(data)
+        
+        const totalParams = new URLSearchParams()
+        if (searchQuery) totalParams.append('q', searchQuery)
+        if (selectedLabel) totalParams.append('label', selectedLabel)
+        totalParams.append('pageSize', '1000') // Get all issues to count
+        
+        const totalResponse = await fetch(`${API_BASE_URL}/api/repos/${repoId}/issues?${totalParams}`)
+        if (totalResponse.ok) {
+          const totalData = await totalResponse.json()
+          setTotalIssues(totalData.length)
+        }
       } else {
         toast({
           title: "Error",
@@ -110,6 +128,7 @@ export default function IssueDashboard() {
   }
 
   const handleSearch = () => {
+    setCurrentPage(1)
     setLoading(true)
     fetchIssues()
   }
@@ -117,6 +136,7 @@ export default function IssueDashboard() {
   const resetFilters = () => {
     setSearchQuery('')
     setSelectedLabel('')
+    setCurrentPage(1)
     setLoading(true)
     fetchIssues()
   }
@@ -143,7 +163,8 @@ export default function IssueDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <TooltipProvider>
+      <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
@@ -252,9 +273,25 @@ export default function IssueDashboard() {
                           </Badge>
                         ))}
                         {issue.labels.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{issue.labels.length - 3}
-                          </Badge>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="text-xs cursor-help">
+                                +{issue.labels.length - 3}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs">
+                                <p className="font-semibold mb-1">Additional labels:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {issue.labels.slice(3).map((label) => (
+                                    <Badge key={label} variant="outline" className="text-xs">
+                                      {label}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
                     </TableCell>
@@ -269,11 +306,42 @@ export default function IssueDashboard() {
         </CardContent>
       </Card>
 
+      {totalIssues > pageSize && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious 
+                onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
+                className={currentPage <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+            {Array.from({ length: Math.ceil(totalIssues / pageSize) }, (_, i) => i + 1).map((page) => (
+              <PaginationItem key={page}>
+                <PaginationLink
+                  onClick={() => setCurrentPage(page)}
+                  isActive={currentPage === page}
+                  className="cursor-pointer"
+                >
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext 
+                onClick={() => currentPage < Math.ceil(totalIssues / pageSize) && setCurrentPage(currentPage + 1)}
+                className={currentPage >= Math.ceil(totalIssues / pageSize) ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
+
       <IssueDetailModal
         issue={selectedIssue}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
-    </div>
+      </div>
+    </TooltipProvider>
   )
 }

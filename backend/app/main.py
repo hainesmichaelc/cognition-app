@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 import httpx
 from dotenv import load_dotenv
 import uuid
@@ -23,6 +23,41 @@ app.add_middleware(
 repos_store: Dict[str, Dict] = {}
 issues_store: Dict[str, List[Dict]] = {}
 devin_sessions_store: Dict[str, Dict] = {}
+
+test_repo_id = "test-repo-123"
+repos_store[test_repo_id] = {
+    "id": test_repo_id,
+    "owner": "testuser",
+    "name": "test-repo",
+    "url": "https://github.com/testuser/test-repo",
+    "connectedAt": datetime.now(),
+    "openIssuesCount": 25,
+    "githubPat": "test_token",
+}
+
+test_issues = []
+for i in range(25):
+    labels = []
+    if i % 3 == 0:
+        labels = ["bug", "high-priority", "frontend", "ui", "critical"]
+    elif i % 3 == 1:
+        labels = ["feature", "enhancement"]
+    else:
+        labels = ["documentation", "help-wanted", "good-first-issue", "backend", "api", "database"]
+    
+    test_issues.append({
+        "id": 1000 + i,
+        "title": f"Test Issue #{i + 1}: Sample issue for testing dashboard functionality",
+        "body": f"This is a test issue body for issue #{i + 1}. It contains sample content for testing the Issue Dashboard.",
+        "labels": labels,
+        "number": i + 1,
+        "author": f"user{i % 5 + 1}",
+        "created_at": datetime.now() - timedelta(days=i),
+        "age_days": i,
+        "status": "open",
+    })
+
+issues_store[test_repo_id] = test_issues
 
 
 class ConnectRepoRequest(BaseModel):
@@ -342,6 +377,8 @@ async def get_issues(
 
     issues = issues_store[repo_id]
 
+    issues = sorted(issues, key=lambda x: x["created_at"], reverse=True)
+
     if q:
         issues = [issue for issue in issues if q.lower() in issue["title"].lower()]
 
@@ -356,7 +393,7 @@ async def get_issues(
             id=issue["id"],
             title=issue["title"],
             body=issue["body"],
-            labels=issue["labels"][:3],  # Limit to 3 labels
+            labels=issue["labels"],  # Return all labels for tooltip
             number=issue["number"],
             author=issue["author"],
             created_at=issue["created_at"],
