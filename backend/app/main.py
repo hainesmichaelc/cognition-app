@@ -537,6 +537,8 @@ async def connect_repo(request: ConnectRepoRequest):
             issues_store[repo_id] = processed_issues
 
             return {"id": repo_id,
+                    "owner": owner,
+                    "name": name,
                     "message": "Repository connected successfully"}
 
     except HTTPException:
