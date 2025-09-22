@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress'
 import { ExternalLink, Play, MessageSquare, CheckCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useSessionManager } from '@/hooks/useSessionManager'
 
 interface Issue {
   id: number
@@ -62,10 +63,24 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
   const [targetBranch, setTargetBranch] = useState('main')
   const [isScoping, setIsScoping] = useState(false)
   const [isExecuting, setIsExecuting] = useState(false)
-  const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null)
   const [isPlanApproved, setIsPlanApproved] = useState(false)
   const [showApprovalDialog, setShowApprovalDialog] = useState(false)
   const { toast } = useToast()
+  const { getIssueSession, fetchSessionDetails, sessionDetails } = useSessionManager()
+
+  const checkForExistingSession = useCallback(async () => {
+    if (!issue) return
+    
+    try {
+      const existingSessionId = await getIssueSession(issue.id)
+      if (existingSessionId) {
+        setSessionId(existingSessionId)
+        await fetchSessionDetails(existingSessionId)
+      }
+    } catch (error) {
+      console.error('Failed to check for existing session:', error)
+    }
+  }, [issue, getIssueSession, fetchSessionDetails])
 
   useEffect(() => {
     if (session?.structured_output?.branch_suggestion && !branchName) {
@@ -74,12 +89,21 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
   }, [session?.structured_output?.branch_suggestion, branchName])
 
   useEffect(() => {
-    return () => {
-      if (pollInterval) {
-        clearInterval(pollInterval)
+    if (isOpen && issue) {
+      checkForExistingSession()
+    }
+  }, [isOpen, issue, checkForExistingSession])
+
+  useEffect(() => {
+    if (sessionId && sessionDetails[sessionId]) {
+      const sessionData = sessionDetails[sessionId]
+      setSession(sessionData)
+      
+      if (sessionData.status === 'completed' && sessionData.structured_output?.pr_url && issue) {
+        onIssueUpdate?.(issue.id, 'PR Submitted', sessionData.structured_output.pr_url)
       }
     }
-  }, [pollInterval])
+  }, [sessionId, sessionDetails, issue, onIssueUpdate])
 
   const startScoping = async () => {
     if (!issue) return
@@ -101,7 +125,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
       if (response.ok) {
         const data = await response.json()
         setSessionId(data.sessionId)
-        startPolling(data.sessionId)
         toast({
           title: "Success",
           description: "Scoping session started"
@@ -124,31 +147,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     }
   }
 
-  const startPolling = (sessionId: string) => {
-    const interval = setInterval(async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/devin/${sessionId}`)
-        if (response.ok) {
-          const data = await response.json()
-          setSession(data)
-          
-          
-          if (data.status === 'completed' && data.structured_output?.pr_url && issue) {
-            onIssueUpdate?.(issue.id, 'PR Submitted', data.structured_output.pr_url)
-          }
-          
-          if (data.status === 'completed' || data.status === 'failed') {
-            clearInterval(interval)
-            setPollInterval(null)
-          }
-        }
-      } catch (error) {
-        console.error('Polling error:', error)
-      }
-    }, 10000)
-    
-    setPollInterval(interval)
-  }
 
   const sendFollowUp = async () => {
     if (!sessionId || !followUpMessage.trim()) return
@@ -217,7 +215,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
       if (response.ok) {
         const data = await response.json()
         setSessionId(data.sessionId)
-        startPolling(data.sessionId)
         toast({
           title: "Success",
           description: "Plan execution started"
@@ -250,12 +247,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
   }
 
   const handleClose = () => {
-    if (pollInterval) {
-      clearInterval(pollInterval)
-      setPollInterval(null)
-    }
-    setSessionId(null)
-    setSession(null)
     setAdditionalContext('')
     setFollowUpMessage('')
     setBranchName('')

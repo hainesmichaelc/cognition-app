@@ -1,0 +1,144 @@
+import { useState, useEffect, useCallback } from 'react'
+
+interface SessionData {
+  sessionId: string
+  issueId: number
+  repoId: string
+  issueTitle: string
+  repoName: string
+  status: string
+  createdAt: string
+  lastAccessed: string
+}
+
+interface DevinSession {
+  status: string
+  structured_output?: {
+    progress_pct: number
+    confidence: 'low' | 'medium' | 'high'
+    summary: string
+    risks: string[]
+    dependencies: string[]
+    estimated_hours: number
+    action_plan: Array<{
+      step: number
+      desc: string
+      done: boolean
+    }>
+    branch_suggestion: string
+    pr_url: string
+  }
+  url: string
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+export function useSessionManager() {
+  const [activeSessions, setActiveSessions] = useState<SessionData[]>([])
+  const [sessionDetails, setSessionDetails] = useState<Record<string, DevinSession>>({})
+  const [isPolling, setIsPolling] = useState(false)
+
+  const fetchActiveSessions = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/sessions/active`)
+      if (response.ok) {
+        const sessions = await response.json()
+        setActiveSessions(sessions)
+        return sessions
+      }
+    } catch (error) {
+      console.error('Failed to fetch active sessions:', error)
+    }
+    return []
+  }, [])
+
+  const fetchSessionDetails = useCallback(async (sessionId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/devin/${sessionId}`)
+      if (response.ok) {
+        const sessionData = await response.json()
+        setSessionDetails(prev => ({
+          ...prev,
+          [sessionId]: sessionData
+        }))
+        return sessionData
+      }
+    } catch (error) {
+      console.error(`Failed to fetch session details for ${sessionId}:`, error)
+    }
+    return null
+  }, [])
+
+  const getIssueSession = useCallback(async (issueId: number) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/issues/${issueId}/session`)
+      if (response.ok) {
+        const data = await response.json()
+        return data.sessionId
+      }
+    } catch (error) {
+      console.error(`Failed to get session for issue ${issueId}:`, error)
+    }
+    return null
+  }, [])
+
+  const cancelSession = useCallback(async (sessionId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}`, {
+        method: 'DELETE'
+      })
+      if (response.ok) {
+        setActiveSessions(prev => prev.filter(s => s.sessionId !== sessionId))
+        setSessionDetails(prev => {
+          const updated = { ...prev }
+          delete updated[sessionId]
+          return updated
+        })
+        return true
+      }
+    } catch (error) {
+      console.error(`Failed to cancel session ${sessionId}:`, error)
+    }
+    return false
+  }, [])
+
+  const startPolling = useCallback(() => {
+    if (isPolling) return
+
+    setIsPolling(true)
+    const interval = setInterval(async () => {
+      const sessions = await fetchActiveSessions()
+      
+      for (const session of sessions) {
+        await fetchSessionDetails(session.sessionId)
+      }
+    }, 10000) // Poll every 10 seconds
+
+    return () => {
+      clearInterval(interval)
+      setIsPolling(false)
+    }
+  }, [isPolling, fetchActiveSessions, fetchSessionDetails])
+
+  const stopPolling = useCallback(() => {
+    setIsPolling(false)
+  }, [])
+
+  useEffect(() => {
+    const cleanup = startPolling()
+    
+    return cleanup
+  }, [startPolling])
+
+  return {
+    activeSessions,
+    sessionDetails,
+    isPolling,
+    fetchActiveSessions,
+    fetchSessionDetails,
+    getIssueSession,
+    cancelSession,
+    startPolling,
+    stopPolling
+  }
+}

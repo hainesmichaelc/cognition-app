@@ -7,8 +7,9 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { ArrowLeft, Search, RefreshCw, X, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Search, RefreshCw, X, ExternalLink, Loader2, CheckCircle, AlertCircle, Clock } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useSessionManager } from '@/hooks/useSessionManager'
 import IssueDetailModal from './IssueDetailModal'
 
 interface Issue {
@@ -23,12 +24,33 @@ interface Issue {
   status: string
 }
 
+interface DevinSession {
+  status: string
+  structured_output?: {
+    progress_pct: number
+    confidence: 'low' | 'medium' | 'high'
+    summary: string
+    risks: string[]
+    dependencies: string[]
+    estimated_hours: number
+    action_plan: Array<{
+      step: number
+      desc: string
+      done: boolean
+    }>
+    branch_suggestion: string
+    pr_url: string
+  }
+  url: string
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 export default function IssueDashboard() {
   const { repoId } = useParams<{ repoId: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { activeSessions, sessionDetails } = useSessionManager()
   
   const [issues, setIssues] = useState<Issue[]>([])
   const [loading, setLoading] = useState(true)
@@ -183,6 +205,64 @@ export default function IssueDashboard() {
     return Array.from(labels)
   }
 
+  const getSessionStatusForIssue = (issueId: number) => {
+    const session = activeSessions.find(s => s.issueId === issueId)
+    if (!session) return null
+    
+    const details = sessionDetails[session.sessionId]
+    return {
+      sessionId: session.sessionId,
+      status: session.status,
+      details,
+      url: details?.url
+    }
+  }
+
+  const getSessionStatusBadge = (status: string, details?: DevinSession) => {
+    switch (status) {
+      case 'scoping':
+        return (
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            Scoping
+          </Badge>
+        )
+      case 'ready':
+      case 'completed':
+        if (details?.structured_output?.pr_url) {
+          return (
+            <Badge variant="secondary" className="bg-green-100 text-green-800">
+              <CheckCircle className="mr-1 h-3 w-3" />
+              Completed
+            </Badge>
+          )
+        } else {
+          return (
+            <Badge variant="secondary" className="bg-green-100 text-green-800">
+              <CheckCircle className="mr-1 h-3 w-3" />
+              Ready for Review
+            </Badge>
+          )
+        }
+      case 'executing':
+        return (
+          <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+            <Clock className="mr-1 h-3 w-3" />
+            Executing
+          </Badge>
+        )
+      case 'failed':
+        return (
+          <Badge variant="secondary" className="bg-red-100 text-red-800">
+            <AlertCircle className="mr-1 h-3 w-3" />
+            Failed
+          </Badge>
+        )
+      default:
+        return null
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -210,6 +290,11 @@ export default function IssueDashboard() {
           <h2 className="text-3xl font-bold tracking-tight">Issue Dashboard</h2>
           <p className="text-muted-foreground">
             Manage and triage repository issues
+            {activeSessions.length > 0 && (
+              <span className="ml-2">
+                • <strong>{activeSessions.length}</strong> active session{activeSessions.length !== 1 ? 's' : ''}
+              </span>
+            )}
           </p>
         </div>
         <Button onClick={resyncRepo} disabled={syncing}>
@@ -270,7 +355,8 @@ export default function IssueDashboard() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Session Status</TableHead>
+                  <TableHead>Issue Status</TableHead>
                   <TableHead>Summary</TableHead>
                   <TableHead>Labels</TableHead>
                   <TableHead>Issue ID</TableHead>
@@ -279,31 +365,52 @@ export default function IssueDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {issues.map((issue) => (
-                  <TableRow key={issue.id}>
-                    <TableCell>
-                      {issueUpdates[issue.id] ? (
-                        issueUpdates[issue.id].prUrl ? (
-                          <a
-                            href={issueUpdates[issue.id].prUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1"
-                          >
-                            <Badge variant="secondary" className="bg-green-100 text-green-800">
-                              {issueUpdates[issue.id].status}
-                            </Badge>
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
+                {issues.map((issue) => {
+                  const sessionStatus = getSessionStatusForIssue(issue.id)
+                  return (
+                    <TableRow key={issue.id}>
+                      <TableCell>
+                        {sessionStatus ? (
+                          <div className="flex items-center gap-2">
+                            {getSessionStatusBadge(sessionStatus.status, sessionStatus.details)}
+                            {sessionStatus.url && (
+                              <a
+                                href={sessionStatus.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                          </div>
                         ) : (
-                          <Badge variant="secondary">{issueUpdates[issue.id].status}</Badge>
-                        )
-                      ) : (
-                        <Badge variant={issue.status === 'open' ? 'default' : 'secondary'}>
-                          {issue.status}
-                        </Badge>
-                      )}
-                    </TableCell>
+                          <span className="text-muted-foreground text-sm">No session</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {issueUpdates[issue.id] ? (
+                          issueUpdates[issue.id].prUrl ? (
+                            <a
+                              href={issueUpdates[issue.id].prUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1"
+                            >
+                              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                {issueUpdates[issue.id].status}
+                              </Badge>
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          ) : (
+                            <Badge variant="secondary">{issueUpdates[issue.id].status}</Badge>
+                          )
+                        ) : (
+                          <Badge variant={issue.status === 'open' ? 'default' : 'secondary'}>
+                            {issue.status}
+                          </Badge>
+                        )}
+                      </TableCell>
                     <TableCell>
                       <button
                         className="text-left hover:underline font-medium"
@@ -353,9 +460,10 @@ export default function IssueDashboard() {
                         {issue.author}
                       </a>
                     </TableCell>
-                    <TableCell>{issue.age_days} days</TableCell>
-                  </TableRow>
-                ))}
+                      <TableCell>{issue.age_days} days</TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           )}
