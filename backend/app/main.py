@@ -79,6 +79,7 @@ class MessageRequest(BaseModel):
 
 class ExecuteRequest(BaseModel):
     branchName: str
+    targetBranch: str = "main"
 
 
 class RepoResponse(BaseModel):
@@ -452,19 +453,47 @@ async def send_message_to_devin(session_id: str, request: MessageRequest):
     session = devin_sessions_store[session_id]
     if session["structured_output"]:
         session["structured_output"]["progress_pct"] = min(
-            session["structured_output"]["progress_pct"] + 20, 90
+            session["structured_output"]["progress_pct"] + 30, 100
         )
-        session["structured_output"][
-            "summary"
-        ] = f"Updated plan based on feedback: {request.message[:50]}..."
+        if session["structured_output"]["progress_pct"] >= 100:
+            session["status"] = "completed"
+            session["structured_output"]["pr_url"] = f"https://github.com/owner/repo/pull/{session_id[:8]}"
+            session["structured_output"]["summary"] = "Execution completed successfully! Pull request created."
+            for step in session["structured_output"]["action_plan"]:
+                step["done"] = True
+        else:
+            session["structured_output"]["summary"] = f"Updated plan based on feedback: {request.message[:50]}..."
 
     return {"message": "Follow-up sent successfully"}
 
 
 @app.post("/api/issues/{issue_id}/execute")
 async def execute_plan(issue_id: int, request: ExecuteRequest):
+    session_id = str(uuid.uuid4())
+    
+    devin_sessions_store[session_id] = {
+        "status": "running",
+        "structured_output": {
+            "progress_pct": 0,
+            "confidence": "medium",
+            "summary": f"Executing plan on branch '{request.branchName}' targeting '{request.targetBranch}'...",
+            "risks": [],
+            "dependencies": [],
+            "estimated_hours": 1,
+            "action_plan": [
+                {"step": 1, "desc": "Create feature branch", "done": False},
+                {"step": 2, "desc": "Implement changes", "done": False},
+                {"step": 3, "desc": "Create pull request", "done": False},
+            ],
+            "branch_suggestion": request.branchName,
+            "pr_url": "",
+        },
+        "url": f"https://app.devin.ai/sessions/{session_id}",
+    }
+    
     return {
+        "sessionId": session_id,
         "message": "Execution started",
         "branchName": request.branchName,
-        "estimatedCompletion": "15-30 minutes",
+        "targetBranch": request.targetBranch,
     }
