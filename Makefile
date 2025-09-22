@@ -6,9 +6,36 @@ dev:
 	@echo "Backend will be available at http://localhost:8000"
 	@echo "Frontend will be available at http://localhost:5173"
 	@echo "Press Ctrl+C to stop both servers"
+	@$(MAKE) check-api-key
 	@cd backend && poetry run fastapi dev app/main.py --host 0.0.0.0 --port 8000 & \
 	cd frontend && npm run dev -- --host 0.0.0.0 --port 5173 & \
 	wait
+
+# Check for DEVIN_API_KEY and prompt if missing
+check-api-key:
+	@if [ ! -f backend/.env ]; then \
+		echo "Creating backend/.env file..."; \
+		touch backend/.env; \
+	fi
+	@if ! grep -q "DEVIN_API_KEY=" backend/.env || grep -q "DEVIN_API_KEY=$$" backend/.env || grep -q "DEVIN_API_KEY= *$$" backend/.env; then \
+		echo ""; \
+		echo "🔑 DEVIN_API_KEY not found or empty in backend/.env"; \
+		echo "Please enter your Devin API key:"; \
+		read -p "DEVIN_API_KEY: " api_key; \
+		if [ -n "$$api_key" ]; then \
+			if grep -q "DEVIN_API_KEY=" backend/.env; then \
+				sed -i.bak "s/DEVIN_API_KEY=.*/DEVIN_API_KEY=$$api_key/" backend/.env && rm -f backend/.env.bak; \
+			else \
+				echo "DEVIN_API_KEY=$$api_key" >> backend/.env; \
+			fi; \
+			echo "✅ API key saved to backend/.env"; \
+		else \
+			echo "❌ No API key provided. Please set DEVIN_API_KEY in backend/.env manually."; \
+			exit 1; \
+		fi; \
+	else \
+		echo "✅ DEVIN_API_KEY found in backend/.env"; \
+	fi
 
 # Install dependencies
 install-deps:
