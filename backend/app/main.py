@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 import httpx
 from dotenv import load_dotenv
 import uuid
+import os
 
 load_dotenv()
 
@@ -22,7 +23,6 @@ app.add_middleware(
 
 repos_store: Dict[str, Dict] = {}
 issues_store: Dict[str, List[Dict]] = {}
-devin_sessions_store: Dict[str, Dict] = {}
 
 test_repo_id = "test-repo-123"
 repos_store[test_repo_id] = {
@@ -43,12 +43,14 @@ for i in range(25):
     elif i % 3 == 1:
         labels = ["feature", "enhancement"]
     else:
-        labels = ["documentation", "help-wanted", "good-first-issue", "backend", "api", "database"]
-    
+        labels = ["documentation", "help-wanted", "good-first-issue",
+                  "backend", "api", "database"]
     test_issues.append({
         "id": 1000 + i,
-        "title": f"Test Issue #{i + 1}: Sample issue for testing dashboard functionality",
-        "body": f"This is a test issue body for issue #{i + 1}. It contains sample content for testing the Issue Dashboard.",
+        "title": f"Test Issue #{i + 1}: Sample issue for testing "
+                 f"dashboard functionality",
+        "body": f"This is a test issue body for issue #{i + 1}. "
+                f"It contains sample content for testing the Issue Dashboard.",
         "labels": labels,
         "number": i + 1,
         "author": f"user{i % 5 + 1}",
@@ -78,6 +80,7 @@ class MessageRequest(BaseModel):
 
 
 class ExecuteRequest(BaseModel):
+    sessionId: str
     branchName: str
     targetBranch: str = "main"
 
@@ -109,6 +112,103 @@ class DevinSessionResponse(BaseModel):
     url: str
 
 
+class DevinAPIService:
+    def __init__(self):
+        self.api_key = os.getenv("DEVIN_API_KEY")
+        self.base_url = "https://api.devin.ai"
+        if not self.api_key:
+            raise ValueError("DEVIN_API_KEY environment variable is required")
+
+    async def create_session(self, prompt: str) -> Dict[str, Any]:
+        """Create a new Devin session with structured output enabled"""
+        async with httpx.AsyncClient() as client:
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+
+            payload = {
+                "prompt": prompt,
+                "unlisted": True
+            }
+
+            response = await client.post(
+                f"{self.base_url}/v1/sessions",
+                headers=headers,
+                json=payload,
+                timeout=30.0
+            )
+
+            if response.status_code != 200:
+                error_msg = (f"Failed to create Devin session: "
+                             f"{response.status_code}")
+                if response.text and self.api_key not in response.text:
+                    error_msg += f" - {response.text}"
+                raise HTTPException(status_code=500, detail=error_msg)
+
+            return response.json()
+
+    async def get_session(self, session_id: str) -> Dict[str, Any]:
+        """Retrieve session details including structured output"""
+        async with httpx.AsyncClient() as client:
+            headers = {
+                "Authorization": f"Bearer {self.api_key}"
+            }
+
+            response = await client.get(
+                f"{self.base_url}/v1/sessions/{session_id}",
+                headers=headers,
+                timeout=30.0
+            )
+
+            if response.status_code == 404:
+                raise HTTPException(status_code=404,
+                                    detail="Session not found")
+            elif response.status_code != 200:
+                error_msg = (f"Failed to retrieve Devin session: "
+                             f"{response.status_code}")
+                if response.text and self.api_key not in response.text:
+                    error_msg += f" - {response.text}"
+                raise HTTPException(status_code=500, detail=error_msg)
+
+            return response.json()
+
+    async def send_message(self, session_id: str,
+                           message: str) -> Dict[str, Any]:
+        """Send a message to an existing Devin session"""
+        async with httpx.AsyncClient() as client:
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+
+            payload = {
+                "message": message
+            }
+
+            response = await client.post(
+                f"{self.base_url}/v1/sessions/{session_id}/message",
+                headers=headers,
+                json=payload,
+                timeout=30.0
+            )
+
+            if response.status_code == 404:
+                raise HTTPException(status_code=404,
+                                    detail="Session not found")
+            elif response.status_code != 200:
+                error_msg = (f"Failed to send message to Devin session: "
+                             f"{response.status_code}")
+                if response.text and self.api_key not in response.text:
+                    error_msg += f" - {response.text}"
+                raise HTTPException(status_code=500, detail=error_msg)
+
+            return response.json()
+
+
+devin_api = DevinAPIService()
+
+
 @app.get("/healthz")
 async def healthz():
     return {"status": "ok"}
@@ -120,12 +220,16 @@ async def connect_repo(request: ConnectRepoRequest):
         url_str = str(request.repoUrl)
         if not url_str.startswith("https://github.com/"):
             raise HTTPException(
-                status_code=400, detail="Only GitHub repositories are supported"
+                status_code=400,
+                detail="Only GitHub repositories are supported"
             )
 
-        parts = url_str.replace("https://github.com/", "").strip("/").split("/")
+        parts = (url_str.replace("https://github.com/", "")
+                 .strip("/").split("/"))
         if len(parts) != 2:
-            raise HTTPException(status_code=400, detail="Invalid repository URL format")
+            raise HTTPException(
+                status_code=400, detail="Invalid repository URL format"
+            )
 
         owner, name = parts
         repo_id = str(uuid.uuid4())
@@ -138,22 +242,26 @@ async def connect_repo(request: ConnectRepoRequest):
             }
 
             repo_response = await client.get(
-                f"https://api.github.com/repos/{owner}/{name}", headers=headers
+                f"https://api.github.com/repos/{owner}/{name}",
+                headers=headers
             )
 
             if repo_response.status_code == 401:
                 raise HTTPException(
-                    status_code=400, detail="Invalid GitHub Personal Access Token"
+                    status_code=400,
+                    detail="Invalid GitHub Personal Access Token"
                 )
             elif repo_response.status_code == 403:
                 raise HTTPException(
                     status_code=400,
-                    detail="GitHub API rate limit exceeded or insufficient permissions",
+                    detail="GitHub API rate limit exceeded or insufficient "
+                           "permissions",
                 )
             elif repo_response.status_code == 404:
                 raise HTTPException(
                     status_code=400,
-                    detail="Repository not found or you don't have access to it",
+                    detail="Repository not found or you don't have access "
+                           "to it",
                 )
             elif repo_response.status_code != 200:
                 raise HTTPException(
@@ -165,14 +273,17 @@ async def connect_repo(request: ConnectRepoRequest):
             if not repo_data.get("permissions"):
                 raise HTTPException(
                     status_code=400,
-                    detail="GitHub Personal Access Token lacks 'repo' scope. Please create a new token with 'repo' permissions.",
+                    detail="GitHub Personal Access Token lacks 'repo' scope. "
+                           "Please create a new token with 'repo' "
+                           "permissions.",
                 )
 
             permissions = repo_data.get("permissions", {})
             if not permissions.get("push", False):
                 raise HTTPException(
                     status_code=400,
-                    detail="You don't have push access to this repository. Push access is required to open pull requests.",
+                    detail="You don't have push access to this repository. "
+                           "Push access is required to open pull requests.",
                 )
 
             issues_response = await client.get(
@@ -183,7 +294,8 @@ async def connect_repo(request: ConnectRepoRequest):
 
             if issues_response.status_code == 403:
                 raise HTTPException(
-                    status_code=400, detail="Rate limit exceeded when fetching issues"
+                    status_code=400,
+                    detail="Rate limit exceeded when fetching issues"
                 )
             elif issues_response.status_code != 200:
                 raise HTTPException(
@@ -206,7 +318,8 @@ async def connect_repo(request: ConnectRepoRequest):
                             "id": issue["id"],
                             "title": issue["title"],
                             "body": issue["body"] or "",
-                            "labels": [label["name"] for label in issue["labels"]],
+                            "labels": [label["name"] for label in
+                                       issue["labels"]],
                             "number": issue["number"],
                             "author": issue["user"]["login"],
                             "created_at": datetime.fromisoformat(
@@ -224,31 +337,38 @@ async def connect_repo(request: ConnectRepoRequest):
                 "url": url_str,
                 "connectedAt": datetime.now(),
                 "openIssuesCount": len(processed_issues),
-                "githubPat": request.githubPat,  # Store PAT for future API calls
+                "githubPat": request.githubPat,  # Store PAT for future
+                # API calls
             }
 
             issues_store[repo_id] = processed_issues
 
-            return {"id": repo_id, "message": "Repository connected successfully"}
+            return {"id": repo_id,
+                    "message": "Repository connected successfully"}
 
     except HTTPException:
         raise
     except httpx.RequestError:
         raise HTTPException(
-            status_code=500, detail="Failed to connect to GitHub API - network error"
+            status_code=500,
+            detail="Failed to connect to GitHub API - network error"
         )
     except Exception as e:
         error_msg = str(e)
         if request.githubPat in error_msg:
             error_msg = error_msg.replace(request.githubPat, "[REDACTED]")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {error_msg}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {error_msg}"
+        )
 
 
 @app.get("/api/repos", response_model=List[RepoResponse])
 async def list_repos():
     repos = []
     for repo_id, repo_data in repos_store.items():
-        safe_repo_data = {k: v for k, v in repo_data.items() if k != "githubPat"}
+        safe_repo_data = {k: v for k, v in repo_data.items()
+                          if k != "githubPat"}
         repos.append(
             RepoResponse(
                 id=safe_repo_data["id"],
@@ -270,8 +390,6 @@ async def delete_repo(repo_id: str):
     del repos_store[repo_id]
     if repo_id in issues_store:
         del issues_store[repo_id]
-    if repo_id in devin_sessions_store:
-        del devin_sessions_store[repo_id]
 
     return {"message": "Repository deleted successfully"}
 
@@ -330,7 +448,8 @@ async def resync_repo(repo_id: str, request: ResyncRequest):
                             "id": issue["id"],
                             "title": issue["title"],
                             "body": issue["body"] or "",
-                            "labels": [label["name"] for label in issue["labels"]],
+                            "labels": [label["name"] for label in
+                                       issue["labels"]],
                             "number": issue["number"],
                             "author": issue["user"]["login"],
                             "created_at": datetime.fromisoformat(
@@ -344,9 +463,6 @@ async def resync_repo(repo_id: str, request: ResyncRequest):
             issues_store[repo_id] = processed_issues
             repos_store[repo_id]["openIssuesCount"] = len(processed_issues)
 
-            if repo_id in devin_sessions_store:
-                del devin_sessions_store[repo_id]
-
             return {
                 "message": "Repository resynced successfully",
                 "issuesCount": len(processed_issues),
@@ -356,13 +472,17 @@ async def resync_repo(repo_id: str, request: ResyncRequest):
         raise
     except httpx.RequestError:
         raise HTTPException(
-            status_code=500, detail="Failed to connect to GitHub API - network error"
+            status_code=500,
+            detail="Failed to connect to GitHub API - network error"
         )
     except Exception as e:
         error_msg = str(e)
         if github_pat in error_msg:
             error_msg = error_msg.replace(github_pat, "[REDACTED]")
-        raise HTTPException(status_code=500, detail="Internal server error occurred")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error occurred"
+        )
 
 
 @app.get("/api/repos/{repo_id}/issues", response_model=List[IssueResponse])
@@ -381,7 +501,8 @@ async def get_issues(
     issues = sorted(issues, key=lambda x: x["created_at"], reverse=True)
 
     if q:
-        issues = [issue for issue in issues if q.lower() in issue["title"].lower()]
+        issues = [issue for issue in issues
+                  if q.lower() in issue["title"].lower()]
 
     if label:
         issues = [issue for issue in issues if label in issue["labels"]]
@@ -407,93 +528,176 @@ async def get_issues(
 
 @app.post("/api/issues/{issue_id}/scope")
 async def scope_issue(issue_id: int, request: ScopeRequest):
-    session_id = str(uuid.uuid4())
+    issue_data = None
+    repo_data = None
 
-    devin_sessions_store[session_id] = {
-        "status": "running",
-        "structured_output": {
-            "progress_pct": 10,
-            "confidence": "medium",
-            "summary": "Analyzing issue requirements and creating implementation plan...",
-            "risks": ["Complexity may be higher than initially estimated"],
-            "dependencies": ["GitHub API access", "Repository permissions"],
-            "estimated_hours": 2,
-            "action_plan": [
-                {"step": 1, "desc": "Analyze issue requirements", "done": False},
-                {"step": 2, "desc": "Create implementation plan", "done": False},
-                {"step": 3, "desc": "Identify potential risks", "done": False},
-            ],
-            "branch_suggestion": f"feat/issue-{issue_id}-implementation",
-            "pr_url": "",
-        },
-        "url": f"https://app.devin.ai/sessions/{session_id}",
-    }
+    for repo_id, issues in issues_store.items():
+        for issue in issues:
+            if issue["id"] == issue_id:
+                issue_data = issue
+                repo_data = repos_store[repo_id]
+                break
+        if issue_data:
+            break
 
-    return {"sessionId": session_id}
+    if not issue_data or not repo_data:
+        raise HTTPException(status_code=404, detail="Issue not found")
+
+    repo_url = repo_data["url"]
+    issue_title = issue_data["title"]
+    issue_number = issue_data["number"]
+    issue_body = issue_data["body"]
+    issue_url = f"{repo_url}/issues/{issue_number}"
+    additional_context = request.additionalContext or "none"
+
+    scoping_prompt = f"""You are Devin, scoping a GitHub issue for \
+feasibility and a concrete, developer-ready plan.
+
+Repo: {repo_url}
+Issue: {issue_title} (#{issue_number})
+Issue URL: {issue_url}
+Issue Body:
+{issue_body}
+
+Additional context from developer:
+{additional_context}
+
+Please produce and keep updated a Structured Output JSON with the \
+following schema:
+{{
+  "progress_pct": 0,
+  "confidence": "low|medium|high",
+  "summary": "one-paragraph plan",
+  "risks": ["list"],
+  "dependencies": ["list"],
+  "estimated_hours": <number>,
+  "action_plan": [{{"step":1,"desc":"...","done":false}}],
+  "branch_suggestion": "feat/issue-{issue_number}-<slug>"
+}}
+
+Guidelines:
+- Do NOT make code changes yet.
+- Ensure the plan includes architecture notes and test strategy.
+- Keep Structured Output updated whenever you refine the plan."""
+
+    try:
+        session_response = await devin_api.create_session(scoping_prompt)
+        session_id = session_response.get("session_id")
+
+        if not session_id:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to get session ID from Devin API"
+            )
+
+        return {"sessionId": session_id}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = str(e)
+        if devin_api.api_key and devin_api.api_key in error_msg:
+            error_msg = error_msg.replace(devin_api.api_key, "[REDACTED]")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create Devin session: {error_msg}"
+        )
 
 
 @app.get("/api/devin/{session_id}", response_model=DevinSessionResponse)
 async def get_devin_session(session_id: str):
-    if session_id not in devin_sessions_store:
-        raise HTTPException(status_code=404, detail="Session not found")
+    try:
+        session_data = await devin_api.get_session(session_id)
 
-    session = devin_sessions_store[session_id]
-    return DevinSessionResponse(
-        status=session["status"],
-        structured_output=session["structured_output"],
-        url=session["url"],
-    )
+        status = session_data.get("status", "unknown")
+        structured_output = session_data.get("structured_output")
+        url = session_data.get(
+            "url", f"https://app.devin.ai/sessions/{session_id}"
+        )
+
+        return DevinSessionResponse(
+            status=status,
+            structured_output=structured_output,
+            url=url,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = str(e)
+        if devin_api.api_key and devin_api.api_key in error_msg:
+            error_msg = error_msg.replace(devin_api.api_key, "[REDACTED]")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve Devin session: {error_msg}"
+        )
 
 
 @app.post("/api/devin/{session_id}/message")
 async def send_message_to_devin(session_id: str, request: MessageRequest):
-    if session_id not in devin_sessions_store:
-        raise HTTPException(status_code=404, detail="Session not found")
+    follow_up_prompt = f"""Apply these follow-up instructions to the \
+existing plan:
+{request.message}
 
-    session = devin_sessions_store[session_id]
-    if session["structured_output"]:
-        session["structured_output"]["progress_pct"] = min(
-            session["structured_output"]["progress_pct"] + 30, 100
+Then update the Structured Output JSON accordingly (plan steps, risks, \
+estimates, confidence, progress_pct)."""
+
+    try:
+        await devin_api.send_message(session_id, follow_up_prompt)
+        return {"message": "Follow-up sent successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = str(e)
+        if devin_api.api_key and devin_api.api_key in error_msg:
+            error_msg = error_msg.replace(devin_api.api_key, "[REDACTED]")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to send message to Devin session: {error_msg}"
         )
-        if session["structured_output"]["progress_pct"] >= 100:
-            session["status"] = "completed"
-            session["structured_output"]["pr_url"] = f"https://github.com/owner/repo/pull/{session_id[:8]}"
-            session["structured_output"]["summary"] = "Execution completed successfully! Pull request created."
-            for step in session["structured_output"]["action_plan"]:
-                step["done"] = True
-        else:
-            session["structured_output"]["summary"] = f"Updated plan based on feedback: {request.message[:50]}..."
-
-    return {"message": "Follow-up sent successfully"}
 
 
 @app.post("/api/issues/{issue_id}/execute")
 async def execute_plan(issue_id: int, request: ExecuteRequest):
-    session_id = str(uuid.uuid4())
-    
-    devin_sessions_store[session_id] = {
-        "status": "running",
-        "structured_output": {
-            "progress_pct": 0,
-            "confidence": "medium",
-            "summary": f"Executing plan on branch '{request.branchName}' targeting '{request.targetBranch}'...",
-            "risks": [],
-            "dependencies": [],
-            "estimated_hours": 1,
-            "action_plan": [
-                {"step": 1, "desc": "Create feature branch", "done": False},
-                {"step": 2, "desc": "Implement changes", "done": False},
-                {"step": 3, "desc": "Create pull request", "done": False},
-            ],
-            "branch_suggestion": request.branchName,
-            "pr_url": "",
-        },
-        "url": f"https://app.devin.ai/sessions/{session_id}",
-    }
-    
-    return {
-        "sessionId": session_id,
-        "message": "Execution started",
-        "branchName": request.branchName,
-        "targetBranch": request.targetBranch,
-    }
+    execution_prompt = f"""Execute the approved plan for the same issue.
+
+Requirements:
+- Create a new branch named: {request.branchName} from \
+{request.targetBranch}.
+- Implement the change set per the plan; write/adjust tests; run locally \
+and capture screenshots if relevant.
+- Open a PR back to {request.targetBranch} with a detailed description \
+following our PR template (devin_pr_template.md), including:
+  - Summary of changes
+  - Evidence: passing tests summary, and screenshots if UI
+  - Manual test plan / reproducible steps
+  - Checklist
+
+Provide the created PR URL in your final message and set Structured Output:
+{{
+  "progress_pct": 100,
+  "confidence": "<final assessment>",
+  "summary": "Implemented",
+  "action_plan": [... with done=true],
+  "pr_url": "<url>"
+}}"""
+
+    try:
+        await devin_api.send_message(request.sessionId, execution_prompt)
+        return {
+            "sessionId": request.sessionId,
+            "message": "Execution started",
+            "branchName": request.branchName,
+            "targetBranch": request.targetBranch,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = str(e)
+        if devin_api.api_key and devin_api.api_key in error_msg:
+            error_msg = error_msg.replace(devin_api.api_key, "[REDACTED]")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to execute plan: {error_msg}"
+        )
