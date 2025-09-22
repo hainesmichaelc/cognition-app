@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 import { Trash2, Plus, ExternalLink, Eye, EyeOff } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
@@ -238,57 +240,61 @@ export default function RepoNavigator() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {repos.map((repo) => (
-            <Card key={repo.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg">
-                      {repo.owner}/{repo.name}
-                    </CardTitle>
-                    <CardDescription className="flex items-center gap-1">
-                      <ExternalLink className="h-3 w-3" />
-                      <a
-                        href={repo.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline"
-                      >
-                        View on GitHub
-                      </a>
-                    </CardDescription>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteRepo(repo.id)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="text-sm text-muted-foreground">
-                    Connected: {new Date(repo.connectedAt).toLocaleDateString()}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      {repo.openIssuesCount} open issues
-                    </span>
-                    <Button
-                      size="sm"
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Repository</TableHead>
+                <TableHead>URL</TableHead>
+                <TableHead>Open Issues</TableHead>
+                <TableHead>Connected</TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {repos.map((repo) => (
+                <TableRow key={repo.id} className="cursor-pointer hover:bg-muted/50">
+                  <TableCell className="font-medium">
+                    <button
+                      className="text-left hover:underline"
                       onClick={() => navigate(`/repos/${repo.id}/issues`)}
                     >
-                      View Issues
+                      {repo.owner}/{repo.name}
+                    </button>
+                  </TableCell>
+                  <TableCell>
+                    <a
+                      href={repo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline flex items-center gap-1"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      View on GitHub
+                    </a>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">
+                      {repo.openIssuesCount} issues
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {new Date(repo.connectedAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteRepo(repo.id)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>
