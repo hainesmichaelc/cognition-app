@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { ArrowLeft, Search, RefreshCw, X } from 'lucide-react'
+import { ArrowLeft, Search, RefreshCw, X, ExternalLink } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import IssueDetailModal from './IssueDetailModal'
 
@@ -39,6 +39,7 @@ export default function IssueDashboard() {
   const [syncing, setSyncing] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalIssues, setTotalIssues] = useState(0)
+  const [issueUpdates, setIssueUpdates] = useState<Record<number, {status: string, prUrl?: string}>>({})
   const pageSize = 20
 
   useEffect(() => {
@@ -139,6 +140,13 @@ export default function IssueDashboard() {
     setCurrentPage(1)
     setLoading(true)
     fetchIssues()
+  }
+
+  const handleIssueUpdate = (issueId: number, status: string, prUrl?: string) => {
+    setIssueUpdates(prev => ({
+      ...prev,
+      [issueId]: { status, prUrl }
+    }))
   }
 
   const openIssueDetail = (issue: Issue) => {
@@ -253,9 +261,27 @@ export default function IssueDashboard() {
                 {issues.map((issue) => (
                   <TableRow key={issue.id}>
                     <TableCell>
-                      <Badge variant={issue.status === 'open' ? 'default' : 'secondary'}>
-                        {issue.status}
-                      </Badge>
+                      {issueUpdates[issue.id] ? (
+                        issueUpdates[issue.id].prUrl ? (
+                          <a
+                            href={issueUpdates[issue.id].prUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1"
+                          >
+                            <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              {issueUpdates[issue.id].status}
+                            </Badge>
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        ) : (
+                          <Badge variant="secondary">{issueUpdates[issue.id].status}</Badge>
+                        )
+                      ) : (
+                        <Badge variant={issue.status === 'open' ? 'default' : 'secondary'}>
+                          {issue.status}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <button
@@ -340,6 +366,7 @@ export default function IssueDashboard() {
         issue={selectedIssue}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onIssueUpdate={handleIssueUpdate}
       />
       </div>
     </TooltipProvider>

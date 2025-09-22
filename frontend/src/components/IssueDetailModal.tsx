@@ -46,16 +46,18 @@ interface IssueDetailModalProps {
   issue: Issue | null
   isOpen: boolean
   onClose: () => void
+  onIssueUpdate?: (issueId: number, status: string, prUrl?: string) => void
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-export default function IssueDetailModal({ issue, isOpen, onClose }: IssueDetailModalProps) {
+export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate }: IssueDetailModalProps) {
   const [additionalContext, setAdditionalContext] = useState('')
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [session, setSession] = useState<DevinSession | null>(null)
   const [followUpMessage, setFollowUpMessage] = useState('')
   const [branchName, setBranchName] = useState('')
+  const [targetBranch, setTargetBranch] = useState('main')
   const [isScoping, setIsScoping] = useState(false)
   const [isExecuting, setIsExecuting] = useState(false)
   const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null)
@@ -124,6 +126,10 @@ export default function IssueDetailModal({ issue, isOpen, onClose }: IssueDetail
           const data = await response.json()
           setSession(data)
           
+          if (data.status === 'completed' && data.structured_output?.pr_url && issue) {
+            onIssueUpdate?.(issue.id, 'PR Submitted', data.structured_output.pr_url)
+          }
+          
           if (data.status === 'completed' || data.status === 'failed') {
             clearInterval(interval)
             setPollInterval(null)
@@ -174,7 +180,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose }: IssueDetail
   }
 
   const executePlan = async () => {
-    if (!issue || !branchName.trim()) return
+    if (!issue || !branchName.trim() || !targetBranch.trim()) return
 
     setIsExecuting(true)
     try {
@@ -184,11 +190,15 @@ export default function IssueDetailModal({ issue, isOpen, onClose }: IssueDetail
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          branchName
+          branchName,
+          targetBranch
         })
       })
 
       if (response.ok) {
+        const data = await response.json()
+        setSessionId(data.sessionId)
+        startPolling(data.sessionId)
         toast({
           title: "Success",
           description: "Plan execution started"
@@ -230,6 +240,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose }: IssueDetail
     setAdditionalContext('')
     setFollowUpMessage('')
     setBranchName('')
+    setTargetBranch('main')
     onClose()
   }
 
@@ -376,6 +387,27 @@ export default function IssueDetailModal({ issue, isOpen, onClose }: IssueDetail
                       </div>
                     </div>
 
+                    {session.structured_output.pr_url && (
+                      <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <h5 className="font-semibold text-green-800">Execution Complete!</h5>
+                        </div>
+                        <p className="text-sm text-green-700 mb-3">
+                          Your pull request has been created successfully.
+                        </p>
+                        <a
+                          href={session.structured_output.pr_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          View Pull Request
+                        </a>
+                      </div>
+                    )}
+
                     <div className="flex gap-4 items-end">
                       <div className="flex-1">
                         <Label htmlFor="follow-up">Send Follow-up</Label>
@@ -395,8 +427,8 @@ export default function IssueDetailModal({ issue, isOpen, onClose }: IssueDetail
 
                     <div className="border-t pt-4">
                       <h5 className="font-semibold mb-2">Execute Plan</h5>
-                      <div className="flex gap-4 items-end">
-                        <div className="flex-1">
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
                           <Label htmlFor="branch-name">Branch Name</Label>
                           <Input
                             id="branch-name"
@@ -405,11 +437,20 @@ export default function IssueDetailModal({ issue, isOpen, onClose }: IssueDetail
                             placeholder="feat/issue-123-implementation"
                           />
                         </div>
-                        <Button onClick={executePlan} disabled={isExecuting || !branchName.trim()}>
-                          <Play className="mr-2 h-4 w-4" />
-                          {isExecuting ? 'Executing...' : 'Execute Plan'}
-                        </Button>
+                        <div>
+                          <Label htmlFor="target-branch">Target Branch</Label>
+                          <Input
+                            id="target-branch"
+                            value={targetBranch}
+                            onChange={(e) => setTargetBranch(e.target.value)}
+                            placeholder="main"
+                          />
+                        </div>
                       </div>
+                      <Button onClick={executePlan} disabled={isExecuting || !branchName.trim() || !targetBranch.trim()}>
+                        <Play className="mr-2 h-4 w-4" />
+                        {isExecuting ? 'Executing...' : 'Execute Plan'}
+                      </Button>
                     </div>
                   </>
                 )}
