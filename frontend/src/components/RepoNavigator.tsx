@@ -93,7 +93,7 @@ export default function RepoNavigator() {
         setRepoUrl('')
         setGithubPat('')
         await fetchRepos()
-        navigate(`/repos/${data.id}/issues`)
+        navigate(`/repos/${encodeURIComponent(data.owner)}/${encodeURIComponent(data.name)}/issues`)
       } else {
         const error = await response.json()
         toast({
@@ -115,7 +115,7 @@ export default function RepoNavigator() {
 
   const deleteRepo = async (repoId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/repos/${repoId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(repoId.split('/')[0])}/${encodeURIComponent(repoId.split('/')[1])}`, {
         method: 'DELETE'
       })
 
@@ -257,7 +257,7 @@ export default function RepoNavigator() {
                   <TableCell className="font-medium">
                     <button
                       className="text-left hover:underline"
-                      onClick={() => navigate(`/repos/${repo.id}/issues`)}
+                      onClick={() => navigate(`/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}/issues`)}
                     >
                       {repo.owner}/{repo.name}
                     </button>

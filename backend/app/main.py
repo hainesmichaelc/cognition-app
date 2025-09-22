@@ -5,8 +5,8 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta, timezone
 import httpx
 from dotenv import load_dotenv
-import uuid
 import os
+from urllib.parse import unquote
 
 load_dotenv()
 
@@ -33,7 +33,7 @@ pr_creation_store: Dict[str, Dict[str, Any]] = {}
 sessions_store: Dict[str, Dict[str, Any]] = {}
 
 if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
-    test_repo_id = "test-repo-123"
+    test_repo_id = "testuser/test-repo"
     repos_store[test_repo_id] = {
         "id": test_repo_id,
         "owner": "testuser",
@@ -439,7 +439,7 @@ async def connect_repo(request: ConnectRepoRequest):
             )
 
         owner, name = parts
-        repo_id = str(uuid.uuid4())
+        repo_id = f"{owner}/{name}"
 
         async with httpx.AsyncClient() as client:
             headers = {
@@ -575,8 +575,9 @@ async def list_repos():
     return repos
 
 
-@app.delete("/api/repos/{repo_id}")
-async def delete_repo(repo_id: str):
+@app.delete("/api/repos/{owner}/{name}")
+async def delete_repo(owner: str, name: str):
+    repo_id = f"{unquote(owner)}/{unquote(name)}"
     if repo_id not in repos_store:
         raise HTTPException(status_code=404, detail="Repository not found")
 
@@ -587,8 +588,9 @@ async def delete_repo(repo_id: str):
     return {"message": "Repository deleted successfully"}
 
 
-@app.post("/api/repos/{repo_id}/resync")
-async def resync_repo(repo_id: str, request: ResyncRequest):
+@app.post("/api/repos/{owner}/{name}/resync")
+async def resync_repo(owner: str, name: str, request: ResyncRequest):
+    repo_id = f"{unquote(owner)}/{unquote(name)}"
     if repo_id not in repos_store:
         raise HTTPException(status_code=404, detail="Repository not found")
 
@@ -660,14 +662,17 @@ async def resync_repo(repo_id: str, request: ResyncRequest):
         )
 
 
-@app.get("/api/repos/{repo_id}/issues", response_model=List[IssueResponse])
+@app.get("/api/repos/{owner}/{name}/issues",
+         response_model=List[IssueResponse])
 async def get_issues(
-    repo_id: str,
+    owner: str,
+    name: str,
     q: Optional[str] = None,
     label: Optional[str] = None,
     page: int = 1,
     pageSize: int = 20,
 ):
+    repo_id = f"{unquote(owner)}/{unquote(name)}"
     if repo_id not in issues_store:
         raise HTTPException(status_code=404, detail="Repository not found")
 
