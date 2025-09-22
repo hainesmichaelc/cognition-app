@@ -86,7 +86,7 @@ class ExecuteRequest(BaseModel):
     sessionId: str
     branchName: str
     targetBranch: str = "main"
-    approved: bool = True
+    approved: bool = False
 
 
 class RepoResponse(BaseModel):
@@ -688,13 +688,20 @@ async def scope_issue(issue_id: int, request: ScopeRequest):
     issue_url = f"{repo_url}/issues/{issue_number}"
     additional_context = request.additionalContext or "none"
 
-    scoping_prompt = f"""You are Devin, scoping a GitHub issue for \
-feasibility and a concrete, developer-ready plan.
+    scoping_prompt = f"""You are Devin in PLANNING PHASE ONLY. Your job is to \
+analyze this GitHub issue for feasibility and create a detailed \
+implementation \
+plan for human review and approval.
+
+IMPORTANT: This is a scoping session, NOT implementation. Do NOT make any \
+code \
+changes, create branches, or implement anything. Your role is strictly to \
+analyze and plan.
 
 To understand the codebase architecture and context, please read all \
-README.md files present in the repository. Start by reading the main \
-README.md in the root, then explore any README.md files in subdirectories \
-(like backend/, \
+README.md \
+files present in the repository. Start by reading the main README.md in the \
+root, then explore any README.md files in subdirectories (like backend/, \
 frontend/, docs/, etc.) to get comprehensive context about the project \
 structure, technology stack, and development workflow.
 
@@ -710,20 +717,26 @@ Additional context from developer:
 Please produce and keep updated a Structured Output JSON with the \
 following schema:
 {{
-  "progress_pct": 0,
+  "progress_pct": 100,
   "confidence": "low|medium|high",
-  "summary": "one-paragraph plan",
-  "risks": ["list"],
-  "dependencies": ["list"],
+  "summary": "one-paragraph implementation plan",
+  "risks": ["list of potential risks"],
+  "dependencies": ["list of dependencies"],
   "estimated_hours": <number>,
-  "action_plan": [{{"step":1,"desc":"...","done":false}}],
-  "branch_suggestion": "feat/issue-{issue_number}-<slug>"
+  "action_plan": [{{"step":1,"desc":"detailed implementation step",\
+"done":false}}],
+  "branch_suggestion": "feat/issue-{issue_number}-<slug>",
+  "status": "AWAITING_APPROVAL"
 }}
 
 Guidelines:
-- Do NOT make code changes yet.
-- Ensure the plan includes architecture notes and test strategy.
-- Keep Structured Output updated whenever you refine the plan."""
+- PLANNING PHASE ONLY - Do NOT implement anything
+- Do NOT make code changes, create branches, or open PRs
+- Focus on thorough analysis and detailed planning
+- Include architecture considerations and test strategy
+- Set progress_pct to 100 when planning is complete
+- Mark status as "AWAITING_APPROVAL" when done
+- Keep Structured Output updated as you refine the plan"""
 
     try:
         session_response = await devin_api.create_session(scoping_prompt)
@@ -852,6 +865,11 @@ estimates, confidence, progress_pct)."""
 
 @app.post("/api/issues/{issue_id}/execute")
 async def execute_plan(issue_id: int, request: ExecuteRequest):
+    if not request.approved:
+        raise HTTPException(
+            status_code=400,
+            detail="Plan must be explicitly approved before execution"
+        )
     issue_data = None
     repo_data = None
 
