@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import httpx
 from dotenv import load_dotenv
 import uuid
@@ -195,7 +195,7 @@ async def connect_repo(request: ConnectRepoRequest):
             for issue in issues_data:
                 if "pull_request" not in issue:  # Skip PRs
                     age_days = (
-                        datetime.now()
+                        datetime.now(timezone.utc)
                         - datetime.fromisoformat(
                             issue["created_at"].replace("Z", "+00:00")
                         )
@@ -240,7 +240,7 @@ async def connect_repo(request: ConnectRepoRequest):
         error_msg = str(e)
         if request.githubPat in error_msg:
             error_msg = error_msg.replace(request.githubPat, "[REDACTED]")
-        raise HTTPException(status_code=500, detail="Internal server error occurred")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {error_msg}")
 
 
 @app.get("/api/repos", response_model=List[RepoResponse])
@@ -319,7 +319,7 @@ async def resync_repo(repo_id: str, request: ResyncRequest):
             for issue in issues_data:
                 if "pull_request" not in issue:  # Skip PRs
                     age_days = (
-                        datetime.now()
+                        datetime.now(timezone.utc)
                         - datetime.fromisoformat(
                             issue["created_at"].replace("Z", "+00:00")
                         )
