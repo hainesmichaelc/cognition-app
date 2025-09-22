@@ -322,7 +322,16 @@ export default function IssueDashboard() {
                       </div>
                     </TableCell>
                     <TableCell>#{issue.number}</TableCell>
-                    <TableCell>{issue.author}</TableCell>
+                    <TableCell>
+                      <a
+                        href={`https://github.com/${issue.author}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {issue.author}
+                      </a>
+                    </TableCell>
                     <TableCell>{issue.age_days} days</TableCell>
                   </TableRow>
                 ))}
