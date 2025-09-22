@@ -23,6 +23,7 @@ app.add_middleware(
 
 repos_store: Dict[str, Dict] = {}
 issues_store: Dict[str, List[Dict]] = {}
+pr_creation_store: Dict[str, Dict[str, Any]] = {}
 
 if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
     test_repo_id = "test-repo-123"
@@ -51,7 +52,8 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
             "title": f"Test Issue #{i + 1}: Sample issue for testing "
                      f"dashboard functionality",
             "body": f"This is a test issue body for issue #{i + 1}. "
-                    f"It contains sample content for testing the Issue Dashboard.",
+                    f"It contains sample content for testing the Issue "
+                    f"Dashboard.",
             "labels": labels,
             "number": i + 1,
             "author": f"user{i % 5 + 1}",
@@ -106,6 +108,20 @@ class IssueResponse(BaseModel):
     created_at: datetime
     age_days: int
     status: str = "open"
+
+
+class PRCreationRequest(BaseModel):
+    title: str
+    body: str
+    head: str
+    base: str
+    issue_number: int
+
+
+class PRResponse(BaseModel):
+    url: str
+    number: int
+    created: bool = True
 
 
 class DevinSessionResponse(BaseModel):
@@ -280,6 +296,55 @@ class DevinAPIService:
 
 
 devin_api = DevinAPIService()
+
+
+async def create_github_pr(
+    owner: str, name: str, github_pat: str, pr_data: PRCreationRequest
+) -> PRResponse:
+    """Create a pull request via GitHub API with automatic issue linking"""
+    async with httpx.AsyncClient() as client:
+        headers = {
+            "Authorization": f"token {github_pat}",
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "Cognition-App/1.0",
+        }
+
+        pr_body = f"{pr_data.body}\n\nCloses #{pr_data.issue_number}"
+
+        payload = {
+            "title": pr_data.title,
+            "body": pr_body,
+            "head": pr_data.head,
+            "base": pr_data.base
+        }
+
+        response = await client.post(
+            f"https://api.github.com/repos/{owner}/{name}/pulls",
+            headers=headers,
+            json=payload
+        )
+
+        if response.status_code == 401:
+            raise HTTPException(status_code=400,
+                                detail="Invalid GitHub Personal Access Token")
+        elif response.status_code == 403:
+            raise HTTPException(status_code=400,
+                                detail="GitHub API rate limit exceeded or "
+                                       "insufficient permissions")
+        elif response.status_code == 422:
+            raise HTTPException(status_code=400,
+                                detail="Pull request creation failed - "
+                                       "check branch names and repository "
+                                       "state")
+        elif response.status_code != 201:
+            raise HTTPException(status_code=400,
+                                detail="Failed to create pull request")
+
+        pr_response = response.json()
+        return PRResponse(
+            url=pr_response["html_url"],
+            number=pr_response["number"]
+        )
 
 
 @app.get("/healthz")
@@ -626,10 +691,12 @@ async def scope_issue(issue_id: int, request: ScopeRequest):
     scoping_prompt = f"""You are Devin, scoping a GitHub issue for \
 feasibility and a concrete, developer-ready plan.
 
-To understand the codebase architecture and context, please read all README.md files \
-present in the repository. Start by reading the main README.md in the root, then explore \
-any README.md files in subdirectories (like backend/, frontend/, docs/, etc.) to get \
-comprehensive context about the project structure, technology stack, and development workflow.
+To understand the codebase architecture and context, please read all \
+README.md files present in the repository. Start by reading the main \
+README.md in the root, then explore any README.md files in subdirectories \
+(like backend/, \
+frontend/, docs/, etc.) to get comprehensive context about the project \
+structure, technology stack, and development workflow.
 
 Repo: {repo_url}
 Issue: {issue_title} (#{issue_number})
@@ -694,6 +761,48 @@ async def get_devin_session(session_id: str):
             "url", f"https://app.devin.ai/sessions/{clean_session_id}"
         )
 
+        if (status == "completed" and
+            session_id in pr_creation_store and
+                not pr_creation_store[session_id]["pr_created"]):
+
+            try:
+                pr_metadata = pr_creation_store[session_id]
+                repo_data = pr_metadata["repo_data"]
+
+                issue_num = pr_metadata['issue_number']
+                branch_name = pr_metadata['branch_name']
+                target_branch = pr_metadata['target_branch']
+
+                pr_request = PRCreationRequest(
+                    title=f"Fix issue #{issue_num}: Implementation via "
+                          f"Devin AI",
+                    body=f"This PR implements the solution for issue "
+                         f"#{issue_num} as planned and executed by Devin AI."
+                         f"\n\n**Branch**: {branch_name}\n**Target**: "
+                         f"{target_branch}",
+                    head=branch_name,
+                    base=target_branch,
+                    issue_number=issue_num
+                )
+
+                pr_response = await create_github_pr(
+                    repo_data["owner"],
+                    repo_data["name"],
+                    repo_data["githubPat"],
+                    pr_request
+                )
+
+                if structured_output:
+                    structured_output["pr_url"] = pr_response.url
+                else:
+                    structured_output = {"pr_url": pr_response.url}
+
+                pr_creation_store[session_id]["pr_created"] = True
+
+            except Exception as e:
+                print(f"Failed to create PR for session {session_id}: "
+                      f"{str(e)}")
+
         return DevinSessionResponse(
             status=status,
             structured_output=structured_output,
@@ -718,8 +827,8 @@ async def send_message_to_devin(session_id: str, request: MessageRequest):
 existing plan:
 {request.message}
 
-If you need additional codebase context, please read the relevant README.md files \
-in the repository to understand the project structure and architecture.
+If you need additional codebase context, please read the relevant README.md \
+files in the repository to understand the project structure and architecture.
 
 Then update the Structured Output JSON accordingly (plan steps, risks, \
 estimates, confidence, progress_pct)."""
@@ -736,7 +845,8 @@ estimates, confidence, progress_pct)."""
             error_msg = error_msg.replace(devin_api.api_key, "[REDACTED]")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to send message to Devin session: {error_msg}"
+            detail=f"Failed to send message to Devin session: "
+                   f"{error_msg}"
         )
 
 
@@ -790,6 +900,16 @@ Provide the created PR URL in your final message and set Structured Output:
 
     try:
         await devin_api.send_message(request.sessionId, execution_prompt)
+
+        pr_creation_store[request.sessionId] = {
+            "issue_id": issue_id,
+            "issue_number": issue_number,
+            "repo_data": repo_data,
+            "branch_name": request.branchName,
+            "target_branch": request.targetBranch,
+            "pr_created": False
+        }
+
         return {
             "sessionId": request.sessionId,
             "message": "Execution started",
