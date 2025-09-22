@@ -688,8 +688,9 @@ async def get_devin_session(session_id: str):
 
         status = session_data.get("status", "unknown")
         structured_output = session_data.get("structured_output")
+        clean_session_id = session_id.removeprefix("devin-")
         url = session_data.get(
-            "url", f"https://app.devin.ai/sessions/{session_id}"
+            "url", f"https://app.devin.ai/sessions/{clean_session_id}"
         )
 
         return DevinSessionResponse(
