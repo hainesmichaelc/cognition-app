@@ -119,6 +119,35 @@ class DevinAPIService:
         if not self.api_key:
             raise ValueError("DEVIN_API_KEY environment variable is required")
 
+    def _read_readme_content(self) -> str:
+        """Read README content from frontend and backend directories"""
+        readme_content = "\n\n## CODEBASE DOCUMENTATION\n\n"
+
+        try:
+            frontend_readme_path = os.path.join(
+                os.path.dirname(__file__), "../../frontend/README.md"
+            )
+            if os.path.exists(frontend_readme_path):
+                with open(frontend_readme_path, 'r', encoding='utf-8') as f:
+                    frontend_content = f.read()
+                readme_content += "### Frontend Documentation\n\n"
+                readme_content += frontend_content + "\n\n"
+
+            backend_readme_path = os.path.join(
+                os.path.dirname(__file__), "../README.md"
+            )
+            if os.path.exists(backend_readme_path):
+                with open(backend_readme_path, 'r', encoding='utf-8') as f:
+                    backend_content = f.read()
+                readme_content += "### Backend Documentation\n\n"
+                readme_content += backend_content + "\n\n"
+
+        except Exception:
+            readme_content += ("### Documentation Error\n\n"
+                               "Unable to read README files.\n\n")
+
+        return readme_content
+
     async def create_session(self, prompt: str) -> Dict[str, Any]:
         """Create a new Devin session with structured output enabled"""
         async with httpx.AsyncClient() as client:
@@ -550,8 +579,12 @@ async def scope_issue(issue_id: int, request: ScopeRequest):
     issue_url = f"{repo_url}/issues/{issue_number}"
     additional_context = request.additionalContext or "none"
 
+    readme_context = devin_api._read_readme_content()
+
     scoping_prompt = f"""You are Devin, scoping a GitHub issue for \
 feasibility and a concrete, developer-ready plan.
+
+{readme_context}
 
 Repo: {repo_url}
 Issue: {issue_title} (#{issue_number})
@@ -635,9 +668,13 @@ async def get_devin_session(session_id: str):
 
 @app.post("/api/devin/{session_id}/message")
 async def send_message_to_devin(session_id: str, request: MessageRequest):
+    readme_context = devin_api._read_readme_content()
+
     follow_up_prompt = f"""Apply these follow-up instructions to the \
 existing plan:
 {request.message}
+
+{readme_context}
 
 Then update the Structured Output JSON accordingly (plan steps, risks, \
 estimates, confidence, progress_pct)."""
@@ -660,7 +697,11 @@ estimates, confidence, progress_pct)."""
 
 @app.post("/api/issues/{issue_id}/execute")
 async def execute_plan(issue_id: int, request: ExecuteRequest):
+    readme_context = devin_api._read_readme_content()
+
     execution_prompt = f"""Execute the approved plan for the same issue.
+
+{readme_context}
 
 Requirements:
 - Create a new branch named: {request.branchName} from \
