@@ -49,7 +49,7 @@ export default function RepoNavigator() {
           variant: "destructive"
         })
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to connect to backend",
@@ -102,7 +102,7 @@ export default function RepoNavigator() {
           variant: "destructive"
         })
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to connect to backend",
@@ -132,7 +132,7 @@ export default function RepoNavigator() {
           variant: "destructive"
         })
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to connect to backend",

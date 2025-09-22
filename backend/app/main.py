@@ -21,9 +21,16 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
+
+@app.on_event("startup")
+async def startup_event():
+    """Run cleanup on startup"""
+    cleanup_old_sessions()
+
 repos_store: Dict[str, Dict] = {}
 issues_store: Dict[str, List[Dict]] = {}
 pr_creation_store: Dict[str, Dict[str, Any]] = {}
+sessions_store: Dict[str, Dict[str, Any]] = {}
 
 if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
     test_repo_id = "test-repo-123"
@@ -130,6 +137,25 @@ class DevinSessionResponse(BaseModel):
     url: str
 
 
+class SessionMetadata(BaseModel):
+    issue_id: int
+    repo_id: str
+    created_at: datetime
+    last_accessed: datetime
+    status: str
+
+
+class ActiveSessionResponse(BaseModel):
+    session_id: str
+    issue_id: int
+    repo_id: str
+    issue_title: str
+    repo_name: str
+    status: str
+    created_at: datetime
+    last_accessed: datetime
+
+
 class DevinAPIService:
     def __init__(self):
         self.api_key = os.getenv("DEVIN_API_KEY")
@@ -208,7 +234,8 @@ class DevinAPIService:
                 section_parts.append(clean_part.title())
         return " - ".join(section_parts) + " Documentation"
 
-    async def create_session(self, prompt: str, wait_for_approval: bool = True) -> Dict[str, Any]:
+    async def create_session(self, prompt: str,
+                             wait_for_approval: bool = True) -> Dict[str, Any]:
         """Create a new Devin session with structured output enabled"""
         async with httpx.AsyncClient() as client:
             headers = {
@@ -678,12 +705,14 @@ async def get_issues(
 async def scope_issue(issue_id: int, request: ScopeRequest):
     issue_data = None
     repo_data = None
+    repo_id = None
 
-    for repo_id, issues in issues_store.items():
+    for current_repo_id, issues in issues_store.items():
         for issue in issues:
             if issue["id"] == issue_id:
                 issue_data = issue
-                repo_data = repos_store[repo_id]
+                repo_data = repos_store[current_repo_id]
+                repo_id = current_repo_id
                 break
         if issue_data:
             break
@@ -749,7 +778,8 @@ Guidelines:
 - Keep Structured Output updated as you refine the plan"""
 
     try:
-        session_response = await devin_api.create_session(scoping_prompt, wait_for_approval=True)
+        session_response = await devin_api.create_session(
+            scoping_prompt, wait_for_approval=True)
         session_id = session_response.get("session_id")
 
         if not session_id:
@@ -757,6 +787,14 @@ Guidelines:
                 status_code=500,
                 detail="Failed to get session ID from Devin API"
             )
+
+        sessions_store[session_id] = {
+            "issue_id": issue_id,
+            "repo_id": repo_id,
+            "created_at": datetime.now(timezone.utc),
+            "last_accessed": datetime.now(timezone.utc),
+            "status": "scoping"
+        }
 
         return {"sessionId": session_id}
 
@@ -783,6 +821,11 @@ async def get_devin_session(session_id: str):
         url = session_data.get(
             "url", f"https://app.devin.ai/sessions/{clean_session_id}"
         )
+
+        if session_id in sessions_store:
+            sessions_store[session_id]["last_accessed"] = datetime.now(
+                timezone.utc)
+            sessions_store[session_id]["status"] = status
 
         if (status == "completed" and
             session_id in pr_creation_store and
@@ -938,6 +981,11 @@ Provide the created PR URL in your final message and set Structured Output:
             "pr_created": False
         }
 
+        if request.sessionId in sessions_store:
+            sessions_store[request.sessionId]["status"] = "executing"
+            sessions_store[request.sessionId]["last_accessed"] = datetime.now(
+                timezone.utc)
+
         return {
             "sessionId": request.sessionId,
             "message": "Execution started",
@@ -954,3 +1002,75 @@ Provide the created PR URL in your final message and set Structured Output:
         raise HTTPException(
             status_code=500, detail=f"Failed to execute plan: {error_msg}"
         )
+
+
+@app.get("/api/issues/{issue_id}/session")
+async def get_issue_session(issue_id: int):
+    """Get active session for a specific issue"""
+    for session_id, session_data in sessions_store.items():
+        if (session_data["issue_id"] == issue_id and
+                session_data["status"] not in ["completed", "failed"]):
+            return {"sessionId": session_id, "status": session_data["status"]}
+
+    return {"sessionId": None, "status": None}
+
+
+@app.get("/api/sessions/active", response_model=List[ActiveSessionResponse])
+async def get_active_sessions():
+    """Get all active sessions across all issues"""
+    active_sessions = []
+
+    for session_id, session_data in sessions_store.items():
+        if session_data["status"] not in ["completed", "failed"]:
+            issue_data = None
+            repo_data = None
+
+            for repo_id, issues in issues_store.items():
+                for issue in issues:
+                    if issue["id"] == session_data["issue_id"]:
+                        issue_data = issue
+                        repo_data = repos_store[repo_id]
+                        break
+                if issue_data:
+                    break
+
+            if issue_data and repo_data:
+                active_sessions.append(ActiveSessionResponse(
+                    session_id=session_id,
+                    issue_id=session_data["issue_id"],
+                    repo_id=session_data["repo_id"],
+                    issue_title=issue_data["title"],
+                    repo_name=repo_data["name"],
+                    status=session_data["status"],
+                    created_at=session_data["created_at"],
+                    last_accessed=session_data["last_accessed"]
+                ))
+
+    return active_sessions
+
+
+@app.delete("/api/sessions/{session_id}")
+async def cancel_session(session_id: str):
+    """Cancel/cleanup a session"""
+    if session_id not in sessions_store:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    sessions_store[session_id]["status"] = "cancelled"
+    sessions_store[session_id]["last_accessed"] = datetime.now(timezone.utc)
+
+    return {"message": "Session cancelled successfully"}
+
+
+def cleanup_old_sessions():
+    """Cleanup sessions older than 24 hours"""
+    cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
+    sessions_to_remove = []
+
+    for session_id, session_data in sessions_store.items():
+        if session_data["last_accessed"] < cutoff_time:
+            sessions_to_remove.append(session_id)
+
+    for session_id in sessions_to_remove:
+        del sessions_store[session_id]
+
+    return len(sessions_to_remove)
