@@ -742,11 +742,28 @@ estimates, confidence, progress_pct)."""
 
 @app.post("/api/issues/{issue_id}/execute")
 async def execute_plan(issue_id: int, request: ExecuteRequest):
+    issue_data = None
+    repo_data = None
+
+    for repo_id, issues in issues_store.items():
+        for issue in issues:
+            if issue["id"] == issue_id:
+                issue_data = issue
+                repo_data = repos_store[repo_id]
+                break
+        if issue_data:
+            break
+
+    if not issue_data or not repo_data:
+        raise HTTPException(status_code=404, detail="Issue not found")
+
+    issue_number = issue_data["number"]
+
     execution_prompt = f"""Execute the approved plan for the same issue.
 
-If you need codebase context during implementation, please read the README.md files \
-in the repository to understand the project structure, development workflow, and \
-deployment processes.
+If you need codebase context during implementation, please read the README.md \
+files in the repository to understand the project structure, development \
+workflow, and deployment processes.
 
 Requirements:
 - Create a new branch named: {request.branchName} from \
@@ -759,6 +776,8 @@ following our PR template (devin_pr_template.md), including:
   - Evidence: passing tests summary, and screenshots if UI
   - Manual test plan / reproducible steps
   - Checklist
+  - **IMPORTANT**: Include "Closes #{issue_number}" in the PR description \
+to automatically link and close the issue when merged
 
 Provide the created PR URL in your final message and set Structured Output:
 {{
