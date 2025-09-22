@@ -1,4 +1,4 @@
-.PHONY: dev format lint install-deps clean
+.PHONY: dev test format lint install-deps clean
 
 # Development - start both frontend and backend
 dev:
@@ -8,6 +8,17 @@ dev:
 	@echo "Press Ctrl+C to stop both servers"
 	@$(MAKE) check-api-key
 	@cd backend && poetry run fastapi dev app/main.py --host 0.0.0.0 --port 8000 & \
+	cd frontend && npm run dev -- --host 0.0.0.0 --port 5173 & \
+	wait
+
+# Development with test data - start both frontend and backend with test data loaded
+test:
+	@echo "Starting development servers with test data..."
+	@echo "Backend will be available at http://localhost:8000"
+	@echo "Frontend will be available at http://localhost:5173"
+	@echo "Press Ctrl+C to stop both servers"
+	@$(MAKE) check-api-key
+	@cd backend && LOAD_TEST_DATA=true poetry run fastapi dev app/main.py --host 0.0.0.0 --port 8000 & \
 	cd frontend && npm run dev -- --host 0.0.0.0 --port 5173 & \
 	wait
 
@@ -74,7 +85,8 @@ health:
 # Help
 help:
 	@echo "Available commands:"
-	@echo "  make dev         - Start both frontend and backend servers"
+	@echo "  make dev         - Start both frontend and backend servers (clean, no test data)"
+	@echo "  make test        - Start both frontend and backend servers with test data loaded"
 	@echo "  make install-deps - Install all dependencies"
 	@echo "  make format      - Format code"
 	@echo "  make lint        - Lint code"
