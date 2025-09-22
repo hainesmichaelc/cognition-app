@@ -145,7 +145,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
       } catch (error) {
         console.error('Polling error:', error)
       }
-    }, 3000)
+    }, 10000)
     
     setPollInterval(interval)
   }
