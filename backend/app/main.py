@@ -299,6 +299,47 @@ class DevinAPIService:
 devin_api = DevinAPIService()
 
 
+async def fetch_all_github_issues(
+    client: httpx.AsyncClient, headers: dict, owner: str, name: str
+) -> List[dict]:
+    """Fetch all open issues from GitHub API using pagination"""
+    all_issues = []
+    page = 1
+
+    while True:
+        response = await client.get(
+            f"https://api.github.com/repos/{owner}/{name}/issues",
+            headers=headers,
+            params={"state": "open", "per_page": 100, "page": page},
+        )
+
+        if response.status_code == 403:
+            raise HTTPException(
+                status_code=400,
+                detail="GitHub API rate limit exceeded or insufficient "
+                       "permissions"
+            )
+        elif response.status_code != 200:
+            raise HTTPException(
+                status_code=400,
+                detail="Failed to fetch repository issues"
+            )
+
+        issues_data = response.json()
+
+        if len(issues_data) == 0:
+            break
+
+        all_issues.extend(issues_data)
+
+        if len(issues_data) < 100:
+            break
+
+        page += 1
+
+    return all_issues
+
+
 async def create_github_pr(
     owner: str, name: str, github_pat: str, pr_data: PRCreationRequest
 ) -> PRResponse:
@@ -425,23 +466,9 @@ async def connect_repo(request: ConnectRepoRequest):
                            "Push access is required to open pull requests.",
                 )
 
-            issues_response = await client.get(
-                f"https://api.github.com/repos/{owner}/{name}/issues",
-                headers=headers,
-                params={"state": "open", "per_page": 100},
+            issues_data = await fetch_all_github_issues(
+                client, headers, owner, name
             )
-
-            if issues_response.status_code == 403:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Rate limit exceeded when fetching issues"
-                )
-            elif issues_response.status_code != 200:
-                raise HTTPException(
-                    status_code=400, detail="Failed to fetch repository issues"
-                )
-
-            issues_data = issues_response.json()
 
             processed_issues = []
             for issue in issues_data:
@@ -551,27 +578,9 @@ async def resync_repo(repo_id: str, request: ResyncRequest):
                 "User-Agent": "Cognition-App/1.0",
             }
 
-            issues_response = await client.get(
-                f"https://api.github.com/repos/{owner}/{name}/issues",
-                headers=headers,
-                params={"state": "open", "per_page": 100},
+            issues_data = await fetch_all_github_issues(
+                client, headers, owner, name
             )
-
-            if issues_response.status_code == 401:
-                raise HTTPException(
-                    status_code=400,
-                    detail="GitHub Personal Access Token is no longer valid",
-                )
-            elif issues_response.status_code == 403:
-                raise HTTPException(
-                    status_code=400, detail="GitHub API rate limit exceeded"
-                )
-            elif issues_response.status_code != 200:
-                raise HTTPException(
-                    status_code=400, detail="Failed to fetch repository issues"
-                )
-
-            issues_data = issues_response.json()
 
             processed_issues = []
             for issue in issues_data:
