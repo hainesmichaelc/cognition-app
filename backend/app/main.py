@@ -24,42 +24,43 @@ app.add_middleware(
 repos_store: Dict[str, Dict] = {}
 issues_store: Dict[str, List[Dict]] = {}
 
-test_repo_id = "test-repo-123"
-repos_store[test_repo_id] = {
-    "id": test_repo_id,
-    "owner": "testuser",
-    "name": "test-repo",
-    "url": "https://github.com/testuser/test-repo",
-    "connectedAt": datetime.now(),
-    "openIssuesCount": 25,
-    "githubPat": "test_token",
-}
+if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
+    test_repo_id = "test-repo-123"
+    repos_store[test_repo_id] = {
+        "id": test_repo_id,
+        "owner": "testuser",
+        "name": "test-repo",
+        "url": "https://github.com/testuser/test-repo",
+        "connectedAt": datetime.now(),
+        "openIssuesCount": 25,
+        "githubPat": "test_token",
+    }
 
-test_issues = []
-for i in range(25):
-    labels = []
-    if i % 3 == 0:
-        labels = ["bug", "high-priority", "frontend", "ui", "critical"]
-    elif i % 3 == 1:
-        labels = ["feature", "enhancement"]
-    else:
-        labels = ["documentation", "help-wanted", "good-first-issue",
-                  "backend", "api", "database"]
-    test_issues.append({
-        "id": 1000 + i,
-        "title": f"Test Issue #{i + 1}: Sample issue for testing "
-                 f"dashboard functionality",
-        "body": f"This is a test issue body for issue #{i + 1}. "
-                f"It contains sample content for testing the Issue Dashboard.",
-        "labels": labels,
-        "number": i + 1,
-        "author": f"user{i % 5 + 1}",
-        "created_at": datetime.now() - timedelta(days=i),
-        "age_days": i,
-        "status": "open",
-    })
+    test_issues = []
+    for i in range(25):
+        labels = []
+        if i % 3 == 0:
+            labels = ["bug", "high-priority", "frontend", "ui", "critical"]
+        elif i % 3 == 1:
+            labels = ["feature", "enhancement"]
+        else:
+            labels = ["documentation", "help-wanted", "good-first-issue",
+                      "backend", "api", "database"]
+        test_issues.append({
+            "id": 1000 + i,
+            "title": f"Test Issue #{i + 1}: Sample issue for testing "
+                     f"dashboard functionality",
+            "body": f"This is a test issue body for issue #{i + 1}. "
+                    f"It contains sample content for testing the Issue Dashboard.",
+            "labels": labels,
+            "number": i + 1,
+            "author": f"user{i % 5 + 1}",
+            "created_at": datetime.now() - timedelta(days=i),
+            "age_days": i,
+            "status": "open",
+        })
 
-issues_store[test_repo_id] = test_issues
+    issues_store[test_repo_id] = test_issues
 
 
 class ConnectRepoRequest(BaseModel):
