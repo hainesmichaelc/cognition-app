@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,15 +40,17 @@ export default function IssueDashboard() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalIssues, setTotalIssues] = useState(0)
   const [issueUpdates, setIssueUpdates] = useState<Record<number, {status: string, prUrl?: string}>>({})
+  const [repoData, setRepoData] = useState<{owner: string, name: string, url: string} | null>(null)
   const pageSize = 20
 
   useEffect(() => {
     if (repoId) {
       fetchIssues()
+      fetchRepoData()
     }
   }, [repoId, currentPage, searchQuery, selectedLabel])
 
-  const fetchIssues = async () => {
+  const fetchIssues = useCallback(async () => {
     if (!repoId) return
     
     try {
@@ -81,6 +83,7 @@ export default function IssueDashboard() {
         })
       }
     } catch (error) {
+      console.error('Failed to fetch issues:', error)
       toast({
         title: "Error",
         description: "Failed to connect to backend",
@@ -89,7 +92,24 @@ export default function IssueDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [repoId, currentPage, searchQuery, selectedLabel])
+
+  const fetchRepoData = useCallback(async () => {
+    if (!repoId) return
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/repos`)
+      if (response.ok) {
+        const repos = await response.json()
+        const repo = repos.find((r: {id: string, owner: string, name: string, url: string}) => r.id === repoId)
+        if (repo) {
+          setRepoData({ owner: repo.owner, name: repo.name, url: repo.url })
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch repository data:', error)
+    }
+  }, [repoId])
 
   const resyncRepo = async () => {
     if (!repoId) return
@@ -118,6 +138,7 @@ export default function IssueDashboard() {
         })
       }
     } catch (error) {
+      console.error('Failed to resync repository:', error)
       toast({
         title: "Error",
         description: "Failed to connect to backend",
@@ -376,6 +397,7 @@ export default function IssueDashboard() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onIssueUpdate={handleIssueUpdate}
+        repoData={repoData}
       />
       </div>
     </TooltipProvider>
