@@ -47,11 +47,12 @@ interface IssueDetailModalProps {
   isOpen: boolean
   onClose: () => void
   onIssueUpdate?: (issueId: number, status: string, prUrl?: string) => void
+  repoData?: {owner: string, name: string, url: string} | null
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate }: IssueDetailModalProps) {
+export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate, repoData }: IssueDetailModalProps) {
   const [additionalContext, setAdditionalContext] = useState('')
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [session, setSession] = useState<DevinSession | null>(null)
@@ -288,7 +289,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
           <DialogTitle className="flex items-center gap-2">
             Issue #{issue.number}: {issue.title}
             <a
-              href={`https://github.com/owner/repo/issues/${issue.number}`}
+              href={repoData ? `${repoData.url}/issues/${issue.number}` : '#'}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-800"
