@@ -24,25 +24,6 @@ interface Issue {
   status: string
 }
 
-interface DevinSession {
-  status: string
-  structured_output?: {
-    progress_pct: number
-    confidence: 'low' | 'medium' | 'high'
-    summary: string
-    risks: string[]
-    dependencies: string[]
-    estimated_hours: number
-    action_plan: Array<{
-      step: number
-      desc: string
-      done: boolean
-    }>
-    branch_suggestion: string
-    pr_url: string
-  }
-  url: string
-}
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -218,7 +199,7 @@ export default function IssueDashboard() {
     }
   }
 
-  const getSessionStatusBadge = (status: string, details?: DevinSession) => {
+  const getSessionStatusBadge = (status: string) => {
     switch (status) {
       case 'scoping':
         return (
@@ -228,22 +209,19 @@ export default function IssueDashboard() {
           </Badge>
         )
       case 'ready':
+        return (
+          <Badge variant="secondary" className="bg-green-100 text-green-800">
+            <CheckCircle className="mr-1 h-3 w-3" />
+            Ready for Review
+          </Badge>
+        )
       case 'completed':
-        if (details?.structured_output?.pr_url) {
-          return (
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              <CheckCircle className="mr-1 h-3 w-3" />
-              Completed
-            </Badge>
-          )
-        } else {
-          return (
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              <CheckCircle className="mr-1 h-3 w-3" />
-              Ready for Review
-            </Badge>
-          )
-        }
+        return (
+          <Badge variant="secondary" className="bg-green-100 text-green-800">
+            <CheckCircle className="mr-1 h-3 w-3" />
+            Completed
+          </Badge>
+        )
       case 'executing':
         return (
           <Badge variant="secondary" className="bg-orange-100 text-orange-800">
@@ -379,7 +357,7 @@ export default function IssueDashboard() {
                       <TableCell>
                         {sessionStatus ? (
                           <div className="flex items-center gap-2">
-                            {getSessionStatusBadge(sessionStatus.status, sessionStatus.details)}
+                            {getSessionStatusBadge(sessionStatus.status)}
                             {sessionStatus.url && (
                               <a
                                 href={sessionStatus.url}
