@@ -109,7 +109,9 @@ export function useSessionManager() {
   }, [])
 
   const startPolling = useCallback(() => {
-    if (isPolling) return
+    if (isPolling) {
+      return () => {} // Return empty cleanup function if already polling
+    }
 
     setIsPolling(true)
     const interval = setInterval(async () => {
