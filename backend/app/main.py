@@ -45,7 +45,7 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
     }
 
     test_issues = []
-    
+
     test_scenarios = [
         {"count": 10, "type": "standard", "status": "open"},
         {"count": 3, "type": "long_content", "status": "open"},
@@ -53,9 +53,12 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
         {"count": 2, "type": "many_labels", "status": "open"},
         {"count": 3, "type": "closed", "status": "closed"},
         {"count": 2, "type": "old_issues", "status": "open"},
-        {"count": 3, "type": "recent_issues", "status": "open"}
+        {"count": 5, "type": "recent_issues", "status": "open"},
+        {"count": 5, "type": "same_day_issues", "status": "open"},
+        {"count": 3, "type": "boundary_issues", "status": "open"},
+        {"count": 10, "type": "performance_test_recent", "status": "open"}
     ]
-    
+
     issue_id = 1000
     for scenario in test_scenarios:
         for i in range(scenario["count"]):
@@ -63,7 +66,7 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
             title = ""
             body = ""
             age_days = i
-            
+
             if scenario["type"] == "standard":
                 if i % 3 == 0:
                     labels = ["bug", "high-priority", "frontend", "ui",
@@ -79,7 +82,7 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
                 body = (f"This is a test issue body for issue "
                         f"#{issue_id - 999}. It contains sample content "
                         f"for testing the Issue Dashboard.")
-            
+
             elif scenario["type"] == "long_content":
                 labels = ["bug", "ui", "overflow-test"]
                 title = (f"Very Long Issue Title That Should Test UI "
@@ -90,12 +93,12 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
                         "content to test how the dashboard handles "
                         "overflow, truncation, and responsive design. "
                         * 10)
-            
+
             elif scenario["type"] == "no_labels":
                 labels = []
                 title = f"Issue Without Labels #{issue_id - 999}"
                 body = "This issue has no labels to test empty label handling."
-            
+
             elif scenario["type"] == "many_labels":
                 labels = ["bug", "feature", "enhancement", "documentation",
                           "help-wanted", "good-first-issue", "backend",
@@ -105,39 +108,103 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
                 title = f"Issue With Many Labels #{issue_id - 999}"
                 body = ("This issue has many labels to test label overflow "
                         "and tooltip functionality.")
-            
+
             elif scenario["type"] == "closed":
                 labels = ["bug", "fixed"]
                 title = f"Closed Issue #{issue_id - 999}"
                 body = "This is a closed issue to test status filtering."
-            
+
             elif scenario["type"] == "old_issues":
                 labels = ["legacy", "technical-debt"]
                 title = f"Old Issue #{issue_id - 999}"
                 body = "This is an old issue to test age-based sorting."
                 age_days = 365 + i * 30
-            
+
             elif scenario["type"] == "recent_issues":
                 labels = ["new", "urgent"]
                 title = f"Recent Issue #{issue_id - 999}"
                 body = "This is a recent issue to test recent sorting."
-                age_days = i
-            
-            test_issues.append({
-                "id": issue_id,
-                "title": title,
-                "body": body,
-                "labels": labels,
-                "number": issue_id - 999,
-                "author": f"user{(issue_id % 5) + 1}",
-                "created_at": datetime.now() - timedelta(days=age_days),
-                "age_days": age_days,
-                "status": scenario["status"],
-            })
+                if i == 0:
+                    age_days = 0
+                    created_time = datetime.now() - timedelta(hours=1)
+                elif i == 1:
+                    age_days = 0
+                    created_time = datetime.now() - timedelta(hours=2)
+                elif i == 2:
+                    age_days = 1
+                    created_time = datetime.now() - timedelta(days=1, hours=3)
+                elif i == 3:
+                    age_days = 2
+                    created_time = datetime.now() - timedelta(days=2, hours=1)
+                else:
+                    age_days = 3
+                    created_time = datetime.now() - timedelta(days=3, hours=2)
+
+            elif scenario["type"] == "same_day_issues":
+                labels = ["same-day", "testing"]
+                title = f"Same Day Issue #{issue_id - 999}"
+                body = ("This issue tests same-day sorting with "
+                        "different times.")
+                age_days = 0
+                created_time = datetime.now() - timedelta(
+                    hours=i + 1, minutes=i * 15)
+
+            elif scenario["type"] == "boundary_issues":
+                labels = ["boundary", "edge-case"]
+                title = f"Boundary Issue #{issue_id - 999}"
+                body = ("This issue tests boundary conditions for "
+                        "recent sorting.")
+                if i == 0:
+                    age_days = 0
+                    created_time = datetime.now() - timedelta(minutes=30)
+                elif i == 1:
+                    age_days = 1
+                    created_time = datetime.now() - timedelta(
+                        days=1, minutes=1)
+                else:
+                    age_days = 1
+                    created_time = datetime.now() - timedelta(
+                        days=1, minutes=-1)
+
+            elif scenario["type"] == "performance_test_recent":
+                labels = ["performance", "load-test"]
+                title = f"Performance Test Issue #{issue_id - 999}"
+                body = ("This issue tests sorting performance with "
+                        "larger datasets.")
+                age_days = i % 7
+                created_time = datetime.now() - timedelta(
+                    days=age_days, hours=i % 24, minutes=i * 6)
+
+            if scenario["type"] in ["recent_issues", "same_day_issues",
+                                    "boundary_issues",
+                                    "performance_test_recent"]:
+                test_issues.append({
+                    "id": issue_id,
+                    "title": title,
+                    "body": body,
+                    "labels": labels,
+                    "number": issue_id - 999,
+                    "author": f"user{(issue_id % 5) + 1}",
+                    "created_at": created_time,
+                    "age_days": age_days,
+                    "status": scenario["status"],
+                })
+            else:
+                test_issues.append({
+                    "id": issue_id,
+                    "title": title,
+                    "body": body,
+                    "labels": labels,
+                    "number": issue_id - 999,
+                    "author": f"user{(issue_id % 5) + 1}",
+                    "created_at": datetime.now() - timedelta(days=age_days),
+                    "age_days": age_days,
+                    "status": scenario["status"],
+                })
             issue_id += 1
 
     issues_store[test_repo_id] = test_issues
-    
+
     print(f"✅ Loaded {len(test_issues)} test issues for {test_repo_id}")
     print(f"   - Issues with labels: "
           f"{len([i for i in test_issues if i['labels']])}")
@@ -149,7 +216,7 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
           f"{len([i for i in test_issues if i['status'] == 'closed'])}")
     print(f"   - Age range: {min(i['age_days'] for i in test_issues)} to "
           f"{max(i['age_days'] for i in test_issues)} days")
-    
+
     repos_store[test_repo_id]["openIssuesCount"] = len([
         i for i in test_issues if i['status'] == 'open'
     ])
@@ -768,17 +835,21 @@ async def get_issues(
     valid_sort_fields = ["created_at", "age_days", "title", "number"]
     if sort_by not in valid_sort_fields:
         sort_by = "created_at"
-    
+
     reverse_order = bool(sort_order and sort_order.lower() == "desc")
-    
+
     if sort_by == "created_at":
-        issues = sorted(issues, key=lambda x: x["created_at"], reverse=reverse_order)
+        issues = sorted(issues, key=lambda x: (x["created_at"], x["number"]),
+                        reverse=reverse_order)
     elif sort_by == "age_days":
-        issues = sorted(issues, key=lambda x: x["age_days"], reverse=reverse_order)
+        issues = sorted(issues, key=lambda x: (x["age_days"], x["created_at"],
+                        x["number"]), reverse=reverse_order)
     elif sort_by == "title":
-        issues = sorted(issues, key=lambda x: x["title"].lower(), reverse=reverse_order)
+        issues = sorted(issues, key=lambda x: (x["title"].lower(),
+                        x["number"]), reverse=reverse_order)
     elif sort_by == "number":
-        issues = sorted(issues, key=lambda x: x["number"], reverse=reverse_order)
+        issues = sorted(issues, key=lambda x: x["number"],
+                        reverse=reverse_order)
 
     if q:
         issues = [issue for issue in issues
@@ -884,9 +955,9 @@ async def scope_issue(
         combined_context += file_contents
 
     scoping_prompt = f"""First, read the repo context and propose a numbered \
-implementation plan. Then **STOP and wait** for my explicit approval. Do **not** \
-make code changes or run commands until I reply with `APPROVE:`. If you need \
-clarification, ask one concise question and wait.
+implementation plan. Then **STOP and wait** for my explicit approval. Do \
+**not** make code changes or run commands until I reply with `APPROVE:`. If \
+you need clarification, ask one concise question and wait.
 
 You are Devin in PLANNING PHASE ONLY. Your job is to \
 analyze this GitHub issue for feasibility and create a detailed \
@@ -929,7 +1000,8 @@ following schema:
   "branch_suggestion": "feat/issue-{issue_number}-<slug>"
 }}
 
-Status should be "scoping" during analysis phase, "blocked" when waiting for approval, "executing" during implementation, and "completed" when finished.
+Status should be "scoping" during analysis phase, "blocked" when waiting \
+for approval, "executing" during implementation, and "completed" when finished.
 
 Guidelines:
 - PLANNING PHASE ONLY - Do NOT implement anything
@@ -1135,7 +1207,8 @@ Provide the created PR URL in your final message and set Structured Output:
   "pr_url": "<url>"
 }}
 
-Status should be "executing" during implementation and "completed" when finished with PR created."""
+Status should be "executing" during implementation and "completed" when \
+finished with PR created."""
 
     try:
         await devin_api.send_message(request.sessionId, execution_prompt)
