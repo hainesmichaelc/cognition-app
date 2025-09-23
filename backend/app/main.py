@@ -929,7 +929,13 @@ following schema:
   "branch_suggestion": "feat/issue-{issue_number}-<slug>"
 }}
 
-Status should be "scoping" during analysis phase, "blocked" when waiting for approval, "executing" during implementation, and "completed" when finished.
+Status transitions:
+- Use "scoping" while actively analyzing and creating the plan
+- Change to "blocked" when your plan is complete and ready for human review/approval
+- Use "executing" during implementation phase  
+- Use "completed" when finished
+
+IMPORTANT: Set status to "blocked" when you finish your analysis and plan (progress_pct: 100) to trigger the approval workflow in the UI.
 
 Guidelines:
 - PLANNING PHASE ONLY - Do NOT implement anything
@@ -937,6 +943,7 @@ Guidelines:
 - Focus on thorough analysis and detailed planning
 - Include architecture considerations and test strategy
 - Set progress_pct to 100 when planning is complete
+- When your plan is complete and ready for review, set status to "blocked" to enable the approval workflow
 - Keep Structured Output updated as you refine the plan"""
 
     try:
