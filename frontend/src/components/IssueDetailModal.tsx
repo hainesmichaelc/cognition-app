@@ -75,7 +75,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
   const [requestChangesMessage, setRequestChangesMessage] = useState('')
   const [questionMessage, setQuestionMessage] = useState('')
   const { toast } = useToast()
-  const { getIssueSession, fetchSessionDetails, sessionDetails, isPolling } = useSessionManager()
+  const { getIssueSession, fetchSessionDetails, sessionDetails, isPolling, fetchActiveSessions } = useSessionManager()
 
   const checkForExistingSession = useCallback(async () => {
     if (!issue) return
@@ -203,6 +203,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
         const data = await response.json()
         setSessionId(data.sessionId)
         await fetchSessionDetails(data.sessionId)
+        await fetchActiveSessions()
         toast({
           title: "Success",
           description: "Scoping session started"
@@ -330,6 +331,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
       if (response.ok) {
         const data = await response.json()
         setSessionId(data.sessionId)
+        await fetchActiveSessions()
         toast({
           title: "Success",
           description: "Plan execution started"
