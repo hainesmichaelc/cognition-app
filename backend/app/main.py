@@ -756,6 +756,8 @@ async def get_issues(
     label: Optional[str] = None,
     page: int = 1,
     pageSize: int = 20,
+    sort_by: Optional[str] = "created_at",
+    sort_order: Optional[str] = "desc",
 ):
     repo_id = f"{unquote(owner)}/{unquote(name)}"
     if repo_id not in issues_store:
@@ -763,7 +765,20 @@ async def get_issues(
 
     issues = issues_store[repo_id]
 
-    issues = sorted(issues, key=lambda x: x["created_at"], reverse=True)
+    valid_sort_fields = ["created_at", "age_days", "title", "number"]
+    if sort_by not in valid_sort_fields:
+        sort_by = "created_at"
+    
+    reverse_order = bool(sort_order and sort_order.lower() == "desc")
+    
+    if sort_by == "created_at":
+        issues = sorted(issues, key=lambda x: x["created_at"], reverse=reverse_order)
+    elif sort_by == "age_days":
+        issues = sorted(issues, key=lambda x: x["age_days"], reverse=reverse_order)
+    elif sort_by == "title":
+        issues = sorted(issues, key=lambda x: x["title"].lower(), reverse=reverse_order)
+    elif sort_by == "number":
+        issues = sorted(issues, key=lambda x: x["number"], reverse=reverse_order)
 
     if q:
         issues = [issue for issue in issues

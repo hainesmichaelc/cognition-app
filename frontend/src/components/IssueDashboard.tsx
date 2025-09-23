@@ -44,6 +44,8 @@ export default function IssueDashboard() {
   const [totalIssues, setTotalIssues] = useState(0)
   const [issueUpdates, setIssueUpdates] = useState<Record<number, {status: string, prUrl?: string}>>({})
   const [repoData, setRepoData] = useState<{owner: string, name: string, url: string} | null>(null)
+  const [sortBy, setSortBy] = useState('created_at')
+  const [sortOrder, setSortOrder] = useState('desc')
   const pageSize = 20
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export default function IssueDashboard() {
       fetchIssues()
       fetchRepoData()
     }
-  }, [owner, name, currentPage, searchQuery, selectedLabel])
+  }, [owner, name, currentPage, searchQuery, selectedLabel, sortBy, sortOrder])
 
   const fetchIssues = useCallback(async () => {
     if (!owner || !name) return
@@ -62,6 +64,8 @@ export default function IssueDashboard() {
       if (selectedLabel) params.append('label', selectedLabel)
       params.append('page', currentPage.toString())
       params.append('pageSize', pageSize.toString())
+      params.append('sort_by', sortBy)
+      params.append('sort_order', sortOrder)
       
       const response = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${params}`)
       if (response.ok) {
@@ -72,6 +76,8 @@ export default function IssueDashboard() {
         if (searchQuery) totalParams.append('q', searchQuery)
         if (selectedLabel) totalParams.append('label', selectedLabel)
         totalParams.append('pageSize', '1000') // Get all issues to count
+        totalParams.append('sort_by', sortBy)
+        totalParams.append('sort_order', sortOrder)
         
         const totalResponse = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${totalParams}`)
         if (totalResponse.ok) {
@@ -95,7 +101,7 @@ export default function IssueDashboard() {
     } finally {
       setLoading(false)
     }
-  }, [owner, name, currentPage, searchQuery, selectedLabel])
+  }, [owner, name, currentPage, searchQuery, selectedLabel, sortBy, sortOrder])
 
   const fetchRepoData = useCallback(async () => {
     if (!owner || !name) return
@@ -161,6 +167,8 @@ export default function IssueDashboard() {
   const resetFilters = () => {
     setSearchQuery('')
     setSelectedLabel('')
+    setSortBy('created_at')
+    setSortOrder('desc')
     setCurrentPage(1)
     setLoading(true)
     fetchIssues()
@@ -313,6 +321,28 @@ export default function IssueDashboard() {
                 {getAllLabels().map(label => (
                   <option key={label} value={label}>{label}</option>
                 ))}
+              </select>
+            </div>
+            <div className="flex-1">
+              <select
+                className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="created_at">Created Date</option>
+                <option value="age_days">Age</option>
+                <option value="title">Title</option>
+                <option value="number">Issue Number</option>
+              </select>
+            </div>
+            <div className="flex-1">
+              <select
+                className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+              >
+                <option value="desc">Newest First</option>
+                <option value="asc">Oldest First</option>
               </select>
             </div>
             <Button onClick={handleSearch}>
