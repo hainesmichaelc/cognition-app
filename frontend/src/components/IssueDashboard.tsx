@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { ArrowLeft, Search, RefreshCw, X, ExternalLink, Loader2, CheckCircle, AlertCircle, Clock } from 'lucide-react'
+import { ArrowLeft, Search, RefreshCw, X, ExternalLink, Loader2, CheckCircle, AlertCircle, Clock, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useSessionManager } from '@/hooks/useSessionManager'
 import IssueDetailModal from './IssueDetailModal'
@@ -249,6 +249,13 @@ export default function IssueDashboard() {
           <Badge variant="secondary" className="bg-orange-100 text-orange-800">
             <Clock className="mr-1 h-3 w-3" />
             Executing
+          </Badge>
+        )
+      case 'suspended':
+        return (
+          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+            <AlertTriangle className="mr-1 h-3 w-3" />
+            Suspended
           </Badge>
         )
       case 'failed':
