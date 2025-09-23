@@ -115,6 +115,15 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
   }, [sessionId, sessionDetails, issue, onIssueUpdate])
 
   useEffect(() => {
+    if (issue) {
+      setSessionId(null)
+      setSession(null)
+      setIsPlanApproved(false)
+      setIsExecuting(false)
+    }
+  }, [issue?.id])
+
+  useEffect(() => {
     const handleAutoExecution = async () => {
       if (
         session?.status === 'blocked' &&

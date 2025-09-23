@@ -1,24 +1,24 @@
 .PHONY: dev test format lint install-deps clean
 
-# Development - start both frontend and backend
-dev:
-	@echo "Starting development servers..."
-	@echo "Backend will be available at http://localhost:8000"
-	@echo "Frontend will be available at http://localhost:5173"
-	@echo "Press Ctrl+C to stop both servers"
-	@$(MAKE) check-api-key
-	@cd backend && poetry run fastapi dev app/main.py --host 0.0.0.0 --port 8000 & \
-	cd frontend && npm run dev -- --host 0.0.0.0 --port 5173 & \
-	wait
-
 # Development with test data - start both frontend and backend with test data loaded
-test:
+dev:
 	@echo "Starting development servers with test data..."
 	@echo "Backend will be available at http://localhost:8000"
 	@echo "Frontend will be available at http://localhost:5173"
 	@echo "Press Ctrl+C to stop both servers"
 	@$(MAKE) check-api-key
 	@cd backend && LOAD_TEST_DATA=true poetry run fastapi dev app/main.py --host 0.0.0.0 --port 8000 & \
+	cd frontend && npm run dev -- --host 0.0.0.0 --port 5173 & \
+	wait
+
+# Testing - start both frontend and backend (clean, no test data)
+test:
+	@echo "Starting development servers..."
+	@echo "Backend will be available at http://localhost:8000"
+	@echo "Frontend will be available at http://localhost:5173"
+	@echo "Press Ctrl+C to stop both servers"
+	@$(MAKE) check-api-key
+	@cd backend && poetry run fastapi dev app/main.py --host 0.0.0.0 --port 8000 & \
 	cd frontend && npm run dev -- --host 0.0.0.0 --port 5173 & \
 	wait
 
@@ -85,9 +85,9 @@ health:
 # Help
 help:
 	@echo "Available commands:"
-	@echo "  make dev         - Start both frontend and backend servers (clean, no test data)"
-	@echo "  make test        - Start both frontend and backend servers with comprehensive test data"
+	@echo "  make dev         - Start both frontend and backend servers with comprehensive test data"
 	@echo "                     (includes 25+ test issues with various scenarios for dashboard testing)"
+	@echo "  make test        - Start both frontend and backend servers (clean, no test data)"
 	@echo "  make install-deps - Install all dependencies"
 	@echo "  make format      - Format code"
 	@echo "  make lint        - Lint code"
