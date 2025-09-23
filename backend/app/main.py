@@ -856,8 +856,7 @@ following schema:
   "estimated_hours": <number>,
   "action_plan": [{{"step":1,"desc":"detailed implementation step",\
 "done":false}}],
-  "branch_suggestion": "feat/issue-{issue_number}-<slug>",
-  "status": "AWAITING_APPROVAL"
+  "branch_suggestion": "feat/issue-{issue_number}-<slug>"
 }}
 
 Guidelines:
@@ -866,7 +865,6 @@ Guidelines:
 - Focus on thorough analysis and detailed planning
 - Include architecture considerations and test strategy
 - Set progress_pct to 100 when planning is complete
-- Mark status as "AWAITING_APPROVAL" when done
 - Keep Structured Output updated as you refine the plan"""
 
     try:
