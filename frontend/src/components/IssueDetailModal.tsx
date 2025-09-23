@@ -11,6 +11,8 @@ import { Progress } from '@/components/ui/progress'
 import { ExternalLink, Play, MessageSquare, CheckCircle, Loader2, Clock, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useSessionManager } from '@/hooks/useSessionManager'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface Issue {
   id: number
@@ -343,9 +345,28 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
           <div>
             <h4 className="font-semibold mb-2">Description</h4>
             <div className="bg-gray-50 p-4 rounded-md max-h-40 overflow-y-auto">
-              <pre className="whitespace-pre-wrap text-sm">
-                {issue.body || 'No description provided'}
-              </pre>
+              <div className="prose prose-sm max-w-none">
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    img: (props) => (
+                      <img {...props} className="max-w-full h-auto rounded-md" style={{maxHeight: '300px'}} />
+                    ),
+                    a: (props) => (
+                      <a {...props} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer" />
+                    ),
+                    code: (props) => {
+                      const {className} = props;
+                      const isInline = !className || !className.includes('language-');
+                      return isInline ? 
+                        <code {...props} className="bg-gray-200 px-1 py-0.5 rounded text-sm" /> :
+                        <code {...props} className="block bg-gray-200 p-2 rounded text-sm overflow-x-auto" />
+                    }
+                  }}
+                >
+                  {issue.body || 'No description provided'}
+                </ReactMarkdown>
+              </div>
             </div>
           </div>
 
