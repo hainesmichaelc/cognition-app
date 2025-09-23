@@ -27,6 +27,7 @@ interface DevinSession {
     }>
     branch_suggestion: string
     pr_url: string
+    status?: string
   }
   url: string
 }
@@ -118,7 +119,7 @@ export function useSessionManager() {
       clearInterval(interval)
       setIsPolling(false)
     }
-  }, [isPolling, fetchActiveSessions, fetchSessionDetails])
+  }, [fetchActiveSessions, fetchSessionDetails])
 
   const stopPolling = useCallback(() => {
     setIsPolling(false)

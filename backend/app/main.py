@@ -817,7 +817,9 @@ async def scope_issue(issue_id: int, request: ScopeRequest):
     issue_url = f"{repo_url}/issues/{issue_number}"
     additional_context = request.additionalContext or "none"
 
-    scoping_prompt = f"""You are Devin in PLANNING PHASE ONLY. Your job is to \
+    scoping_prompt = f"""First, read the repo context and propose a numbered implementation plan. Then **STOP and wait** for my explicit approval. Do **not** make code changes or run commands until I reply with `APPROVE:`. If you need clarification, ask one concise question and wait.
+
+You are Devin in PLANNING PHASE ONLY. Your job is to \
 analyze this GitHub issue for feasibility and create a detailed \
 implementation \
 plan for human review and approval.
