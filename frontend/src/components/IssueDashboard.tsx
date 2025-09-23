@@ -5,12 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ArrowLeft, Search, RefreshCw, X, ExternalLink, Loader2, CheckCircle, AlertCircle, Clock, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useSessionManager } from '@/hooks/useSessionManager'
 import IssueDetailModal from './IssueDetailModal'
+import { SearchFilterWarning } from './SearchFilterWarning'
 
 interface Issue {
   id: number
@@ -40,50 +40,54 @@ export default function IssueDashboard() {
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [syncing, setSyncing] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalIssues, setTotalIssues] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMoreFromGithub, setHasMoreFromGithub] = useState(false)
+  const [allIssuesLoaded, setAllIssuesLoaded] = useState(false)
   const [issueUpdates, setIssueUpdates] = useState<Record<number, {status: string, prUrl?: string}>>({})
   const [repoData, setRepoData] = useState<{owner: string, name: string, url: string} | null>(null)
   const [sortBy, setSortBy] = useState('age_days')
   const [sortOrder, setSortOrder] = useState('asc')
-  const pageSize = 20
+  const pageSize = 100
 
   useEffect(() => {
     if (owner && name) {
       fetchIssues()
       fetchRepoData()
     }
-  }, [owner, name, currentPage, searchQuery, selectedLabel, sortBy, sortOrder])
+  }, [owner, name, searchQuery, selectedLabel, sortBy, sortOrder])
 
-  const fetchIssues = useCallback(async () => {
+  const fetchIssues = useCallback(async (loadMore = false) => {
     if (!owner || !name) return
     
     try {
+      if (!loadMore) {
+        setLoading(true)
+        setIssues([])
+      } else {
+        setLoadingMore(true)
+      }
+      
       const params = new URLSearchParams()
       if (searchQuery) params.append('q', searchQuery)
       if (selectedLabel) params.append('label', selectedLabel)
-      params.append('page', currentPage.toString())
+      params.append('page', '1')
       params.append('pageSize', pageSize.toString())
       params.append('sort_by', sortBy)
       params.append('sort_order', sortOrder)
+      if (loadMore) params.append('load_more', 'true')
       
       const response = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${params}`)
       if (response.ok) {
         const data = await response.json()
-        setIssues(data)
         
-        const totalParams = new URLSearchParams()
-        if (searchQuery) totalParams.append('q', searchQuery)
-        if (selectedLabel) totalParams.append('label', selectedLabel)
-        totalParams.append('pageSize', '1000') // Get all issues to count
-        totalParams.append('sort_by', sortBy)
-        totalParams.append('sort_order', sortOrder)
-        
-        const totalResponse = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${totalParams}`)
-        if (totalResponse.ok) {
-          const totalData = await totalResponse.json()
-          setTotalIssues(totalData.length)
+        if (loadMore) {
+          setIssues(prev => [...prev, ...data.issues])
+        } else {
+          setIssues(data.issues)
         }
+        
+        setHasMoreFromGithub(data.has_more_from_github || false)
+        setAllIssuesLoaded(!data.has_more_from_github)
       } else {
         toast({
           title: "Error",
@@ -100,8 +104,32 @@ export default function IssueDashboard() {
       })
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
-  }, [owner, name, currentPage, searchQuery, selectedLabel, sortBy, sortOrder])
+  }, [owner, name, searchQuery, selectedLabel, sortBy, sortOrder, pageSize])
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const target = entries[0]
+        if (target.isIntersecting && !loadingMore && hasMoreFromGithub && !allIssuesLoaded) {
+          fetchIssues(true)
+        }
+      },
+      { threshold: 1.0 }
+    )
+
+    const sentinel = document.getElementById('scroll-sentinel')
+    if (sentinel) {
+      observer.observe(sentinel)
+    }
+
+    return () => {
+      if (sentinel) {
+        observer.unobserve(sentinel)
+      }
+    }
+  }, [loadingMore, hasMoreFromGithub, allIssuesLoaded, fetchIssues])
 
   const fetchRepoData = useCallback(async () => {
     if (!owner || !name) return
@@ -159,9 +187,7 @@ export default function IssueDashboard() {
   }
 
   const handleSearch = () => {
-    setCurrentPage(1)
-    setLoading(true)
-    fetchIssues()
+    fetchIssues(false)
   }
 
   const resetFilters = () => {
@@ -169,9 +195,7 @@ export default function IssueDashboard() {
     setSelectedLabel('')
     setSortBy('age_days')
     setSortOrder('asc')
-    setCurrentPage(1)
-    setLoading(true)
-    fetchIssues()
+    fetchIssues(false)
   }
 
   const handleIssueUpdate = (issueId: number, status: string, prUrl?: string) => {
@@ -362,6 +386,10 @@ export default function IssueDashboard() {
         </CardContent>
       </Card>
 
+      <SearchFilterWarning 
+        show={hasMoreFromGithub && (searchQuery !== '' || selectedLabel !== '')} 
+      />
+
       <Card>
         <CardHeader>
           <CardTitle>Issues ({issues.length})</CardTitle>
@@ -490,35 +518,15 @@ export default function IssueDashboard() {
         </CardContent>
       </Card>
 
-      {totalIssues > pageSize && (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious 
-                onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
-                className={currentPage <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-              />
-            </PaginationItem>
-            {Array.from({ length: Math.ceil(totalIssues / pageSize) }, (_, i) => i + 1).map((page) => (
-              <PaginationItem key={page}>
-                <PaginationLink
-                  onClick={() => setCurrentPage(page)}
-                  isActive={currentPage === page}
-                  className="cursor-pointer"
-                >
-                  {page}
-                </PaginationLink>
-              </PaginationItem>
-            ))}
-            <PaginationItem>
-              <PaginationNext 
-                onClick={() => currentPage < Math.ceil(totalIssues / pageSize) && setCurrentPage(currentPage + 1)}
-                className={currentPage >= Math.ceil(totalIssues / pageSize) ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
+      {/* Infinite scroll sentinel */}
+      <div id="scroll-sentinel" className="h-4 flex justify-center items-center">
+        {loadingMore && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading more issues...
+          </div>
+        )}
+      </div>
 
       <IssueDetailModal
         issue={selectedIssue}
