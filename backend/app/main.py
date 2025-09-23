@@ -6,6 +6,8 @@ from datetime import datetime, timedelta, timezone
 import httpx
 from dotenv import load_dotenv
 import os
+import re
+import json
 from urllib.parse import unquote
 
 load_dotenv()
@@ -986,6 +988,11 @@ async def get_devin_session(session_id: str):
 
         status = session_data.get("status", "unknown")
         structured_output = session_data.get("structured_output")
+        
+        if structured_output is None:
+            messages = session_data.get("messages", [])
+            structured_output = extract_structured_output_from_messages(messages)
+        
         clean_session_id = session_id.removeprefix("devin-")
         url = session_data.get(
             "url", f"https://app.devin.ai/sessions/{clean_session_id}"
@@ -1234,6 +1241,30 @@ async def cancel_session(session_id: str):
     sessions_store[session_id]["last_accessed"] = datetime.now(timezone.utc)
 
     return {"message": "Session cancelled successfully"}
+
+
+def extract_structured_output_from_messages(messages: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Extract structured output from Devin messages as fallback when structured_output field is null"""
+    if not messages:
+        return None
+    
+    for message in reversed(messages):
+        if message.get("type") == "devin_message":
+            message_text = message.get("message", "")
+            
+            json_pattern = r'```json\s*(\{.*?\})\s*```'
+            matches = re.findall(json_pattern, message_text, re.DOTALL)
+            
+            for match in matches:
+                try:
+                    parsed = json.loads(match)
+                    if ('progress_pct' in parsed and 'status' in parsed and 
+                        'summary' in parsed):
+                        return parsed
+                except json.JSONDecodeError:
+                    continue
+    
+    return None
 
 
 def cleanup_old_sessions():
