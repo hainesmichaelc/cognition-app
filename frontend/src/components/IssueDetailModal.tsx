@@ -60,6 +60,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate, repoData }: IssueDetailModalProps) {
   const [additionalContext, setAdditionalContext] = useState('')
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [session, setSession] = useState<DevinSession | null>(null)
   const [followUpMessage, setFollowUpMessage] = useState('')
@@ -177,14 +178,16 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     setIsPlanApproved(false)
     setShowApprovalDialog(false)
     try {
+      const formData = new FormData()
+      formData.append('additionalContext', additionalContext)
+      
+      uploadedFiles.forEach((file) => {
+        formData.append('files', file)
+      })
+
       const response = await fetch(`${API_BASE_URL}/api/issues/${issue.id}/scope`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          additionalContext
-        })
+        body: formData
       })
 
       if (response.ok) {
@@ -196,9 +199,10 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
           description: "Scoping session started"
         })
       } else {
+        const errorData = await response.json()
         toast({
           title: "Error",
-          description: "Failed to start scoping session",
+          description: errorData.detail || "Failed to start scoping session",
           variant: "destructive"
         })
       }
@@ -350,6 +354,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
 
   const handleClose = () => {
     setAdditionalContext('')
+    setUploadedFiles([])
     setFollowUpMessage('')
     setBranchName('')
     setTargetBranch('main')
@@ -445,6 +450,40 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="file-upload">Upload Files (Optional)</Label>
+                  <div className="mt-2">
+                    <input
+                      id="file-upload"
+                      type="file"
+                      multiple
+                      accept=".txt,.md,.py,.js,.ts,.jsx,.tsx,.json,.yaml,.yml,.xml,.html,.css,.sql,.sh,.env,.gitignore,.dockerfile,.conf,.ini,.cfg,.log"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || [])
+                        setUploadedFiles(files)
+                      }}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    {uploadedFiles.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {uploadedFiles.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                            <span>{file.name} ({(file.size / 1024).toFixed(1)} KB)</span>
+                            <button
+                              onClick={() => {
+                                const newFiles = uploadedFiles.filter((_, i) => i !== index)
+                                setUploadedFiles(newFiles)
+                              }}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <div>
                   <Label htmlFor="additional-context">Additional Context (Optional)</Label>
                   <Textarea
