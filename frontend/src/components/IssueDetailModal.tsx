@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { ExternalLink, Play, MessageSquare, CheckCircle, Loader2 } from 'lucide-react'
+import { ExternalLink, Play, MessageSquare, CheckCircle, Loader2, Clock, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useSessionManager } from '@/hooks/useSessionManager'
 
@@ -65,6 +65,10 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
   const [isExecuting, setIsExecuting] = useState(false)
   const [isPlanApproved, setIsPlanApproved] = useState(false)
   const [showApprovalDialog, setShowApprovalDialog] = useState(false)
+  const [showRequestChangesDialog, setShowRequestChangesDialog] = useState(false)
+  const [showQuestionDialog, setShowQuestionDialog] = useState(false)
+  const [requestChangesMessage, setRequestChangesMessage] = useState('')
+  const [questionMessage, setQuestionMessage] = useState('')
   const { toast } = useToast()
   const { getIssueSession, fetchSessionDetails, sessionDetails, isPolling } = useSessionManager()
 
@@ -184,6 +188,42 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     }
   }
 
+  const sendApprovalMessage = async (message: string) => {
+    if (!sessionId) return
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/devin/${sessionId}/message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message
+        })
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Message sent successfully"
+        })
+        setIsPlanApproved(false)
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to send message",
+          variant: "destructive"
+        })
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive"
+      })
+    }
+  }
+
 
   const executePlan = async () => {
     if (!issue || !branchName.trim() || !targetBranch.trim() || !isPlanApproved) {
@@ -253,6 +293,10 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     setTargetBranch('main')
     setIsPlanApproved(false)
     setShowApprovalDialog(false)
+    setShowRequestChangesDialog(false)
+    setShowQuestionDialog(false)
+    setRequestChangesMessage('')
+    setQuestionMessage('')
     onClose()
   }
 
@@ -432,7 +476,44 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                       </div>
                     </div>
 
-                    {session.status === 'completed' && !isPlanApproved && !session.structured_output?.pr_url && (
+                    {session.structured_output?.status === 'AWAITING_APPROVAL' && !isPlanApproved && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Clock className="h-5 w-5 text-blue-600" />
+                          <h5 className="font-semibold text-blue-800">Plan Review Required</h5>
+                        </div>
+                        <p className="text-sm text-blue-700 mb-4">
+                          Please review the implementation plan above and choose how to proceed:
+                        </p>
+                        <div className="flex gap-2 flex-wrap">
+                          <Button 
+                            onClick={() => sendApprovalMessage('APPROVE: proceed with step 1. If risks exist, call them out first.')}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Approve Plan
+                          </Button>
+                          <Button 
+                            onClick={() => setShowRequestChangesDialog(true)}
+                            variant="outline"
+                            className="border-orange-500 text-orange-700 hover:bg-orange-50"
+                          >
+                            <AlertTriangle className="mr-2 h-4 w-4" />
+                            Request Changes
+                          </Button>
+                          <Button 
+                            onClick={() => setShowQuestionDialog(true)}
+                            variant="outline"
+                            className="border-blue-500 text-blue-700 hover:bg-blue-50"
+                          >
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            Ask Question
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {session.status === 'completed' && !isPlanApproved && !session.structured_output?.pr_url && session.structured_output?.status !== 'AWAITING_APPROVAL' && (
                       <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <CheckCircle className="h-5 w-5 text-blue-600" />
@@ -567,6 +648,72 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Request Changes Dialog */}
+      <AlertDialog open={showRequestChangesDialog} onOpenChange={setShowRequestChangesDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Request Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              Provide feedback on what changes you'd like to see in the plan:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Textarea
+              placeholder="Describe the changes you'd like to see..."
+              value={requestChangesMessage}
+              onChange={(e) => setRequestChangesMessage(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setRequestChangesMessage('')}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                sendApprovalMessage(`REQUEST CHANGES: ${requestChangesMessage}`)
+                setShowRequestChangesDialog(false)
+                setRequestChangesMessage('')
+              }}
+              disabled={!requestChangesMessage.trim()}
+            >
+              Send Feedback
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Question Dialog */}
+      <AlertDialog open={showQuestionDialog} onOpenChange={setShowQuestionDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ask Question</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ask a clarifying question about the implementation plan:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Textarea
+              placeholder="What would you like to know?"
+              value={questionMessage}
+              onChange={(e) => setQuestionMessage(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setQuestionMessage('')}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                sendApprovalMessage(`QUESTION: ${questionMessage}`)
+                setShowQuestionDialog(false)
+                setQuestionMessage('')
+              }}
+              disabled={!questionMessage.trim()}
+            >
+              Ask Question
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   )
 }
