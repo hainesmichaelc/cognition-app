@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl
 from typing import List, Optional, Dict, Any
@@ -792,7 +792,11 @@ async def get_issues(
 
 
 @app.post("/api/issues/{issue_id}/scope")
-async def scope_issue(issue_id: int, request: ScopeRequest):
+async def scope_issue(
+    issue_id: int,
+    additionalContext: str = "",
+    files: List[UploadFile] = File(default=[])
+):
     issue_data = None
     repo_data = None
     repo_id = None
@@ -815,9 +819,59 @@ async def scope_issue(issue_id: int, request: ScopeRequest):
     issue_number = issue_data["number"]
     issue_body = issue_data["body"]
     issue_url = f"{repo_url}/issues/{issue_number}"
-    additional_context = request.additionalContext or "none"
+    additional_context = additionalContext or "none"
 
-    scoping_prompt = f"""First, read the repo context and propose a numbered implementation plan. Then **STOP and wait** for my explicit approval. Do **not** make code changes or run commands until I reply with `APPROVE:`. If you need clarification, ask one concise question and wait.
+    file_contents = ""
+    if files:
+        file_contents = "\n\n## UPLOADED FILES\n\n"
+        for file in files:
+            if file.size and file.size > 10 * 1024 * 1024:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"File {file.filename} exceeds 10MB limit"
+                )
+
+            allowed_extensions = {
+                '.txt', '.md', '.py', '.js', '.ts', '.jsx', '.tsx',
+                '.json', '.yaml', '.yml', '.xml', '.html', '.css',
+                '.sql', '.sh', '.env', '.gitignore', '.dockerfile',
+                '.conf', '.ini', '.cfg', '.log'
+            }
+            file_ext = os.path.splitext(file.filename or "")[1].lower()
+            filename_lower = (file.filename or "").lower()
+            if (file_ext not in allowed_extensions and
+                    not filename_lower.startswith('readme')):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"File type {file_ext} not supported. "
+                           f"Only text-based files are allowed."
+                )
+
+            try:
+                content = await file.read()
+                decoded_content = content.decode('utf-8')
+                file_contents += (
+                    f"### {file.filename}\n\n```\n{decoded_content}\n```\n\n"
+                )
+            except UnicodeDecodeError:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"File {file.filename} is not a valid text file"
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Error reading file {file.filename}: {str(e)}"
+                )
+
+    combined_context = additional_context
+    if file_contents:
+        combined_context += file_contents
+
+    scoping_prompt = f"""First, read the repo context and propose a numbered \
+implementation plan. Then **STOP and wait** for my explicit approval. Do **not** \
+make code changes or run commands until I reply with `APPROVE:`. If you need \
+clarification, ask one concise question and wait.
 
 You are Devin in PLANNING PHASE ONLY. Your job is to \
 analyze this GitHub issue for feasibility and create a detailed \
@@ -843,7 +897,7 @@ Issue Body:
 {issue_body}
 
 Additional context from developer:
-{additional_context}
+{combined_context}
 
 Please produce and keep updated a Structured Output JSON with the \
 following schema:
