@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useSessionManager } from '@/hooks/useSessionManager'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import DOMPurify from 'dompurify'
 
 interface Issue {
   id: number
@@ -344,13 +345,21 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
 
           <div>
             <h4 className="font-semibold mb-2">Description</h4>
-            <div className="bg-gray-50 p-4 rounded-md max-h-40 overflow-y-auto">
-              <div className="prose prose-sm max-w-none">
+            <div className="bg-gray-50 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
+              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md">
                 <ReactMarkdown 
                   remarkPlugins={[remarkGfm]}
                   components={{
                     img: (props) => (
-                      <img {...props} className="max-w-full h-auto rounded-md" style={{maxHeight: '300px'}} />
+                      <img 
+                        {...props} 
+                        className="max-w-full h-auto rounded-md border border-gray-200 shadow-sm" 
+                        style={{maxHeight: '400px', objectFit: 'contain'}} 
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
                     ),
                     a: (props) => (
                       <a {...props} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer" />
@@ -364,7 +373,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                     }
                   }}
                 >
-                  {issue.body || 'No description provided'}
+                  {DOMPurify.sanitize(issue.body || 'No description provided')}
                 </ReactMarkdown>
               </div>
             </div>
