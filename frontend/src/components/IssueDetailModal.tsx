@@ -57,6 +57,10 @@ interface IssueDetailModalProps {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+const isSessionCompleted = (session: DevinSession | null) => {
+  return session?.status === 'completed' || session?.structured_output?.status === 'completed'
+}
+
 export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate, repoData }: IssueDetailModalProps) {
   const [additionalContext, setAdditionalContext] = useState('')
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
@@ -524,7 +528,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     Devin Analysis
-                    {isPolling && session.status !== 'completed' && (
+                    {isPolling && !isSessionCompleted(session) && (
                       <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                     )}
                   </div>
@@ -621,7 +625,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                             <div key={step.step} className="flex items-start gap-2">
                               {step.done ? (
                                 <CheckCircle className="h-4 w-4 mt-1 text-green-500" />
-                              ) : isCurrentStep && session.status === 'running' ? (
+                              ) : isCurrentStep && session.status === 'running' && !isSessionCompleted(session) ? (
                                 <Loader2 className="h-4 w-4 mt-1 animate-spin text-blue-600" />
                               ) : (
                                 <CheckCircle className="h-4 w-4 mt-1 text-gray-300" />
@@ -772,7 +776,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                 )}
 
                 {/* Follow-up message UI - always available for active sessions */}
-                {(session.status === 'running' || session.status === 'blocked') && (
+                {(session.status === 'running' || session.status === 'blocked') && !isSessionCompleted(session) && (
                   <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
                     <div className="flex items-start gap-2">
                       <MessageSquare className="h-4 w-4 text-blue-600 mt-0.5" />
