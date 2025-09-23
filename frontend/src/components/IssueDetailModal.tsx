@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { ExternalLink, Play, MessageSquare, CheckCircle } from 'lucide-react'
+import { ExternalLink, Play, MessageSquare, CheckCircle, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useSessionManager } from '@/hooks/useSessionManager'
 
@@ -66,7 +66,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
   const [isPlanApproved, setIsPlanApproved] = useState(false)
   const [showApprovalDialog, setShowApprovalDialog] = useState(false)
   const { toast } = useToast()
-  const { getIssueSession, fetchSessionDetails, sessionDetails } = useSessionManager()
+  const { getIssueSession, fetchSessionDetails, sessionDetails, isPolling } = useSessionManager()
 
   const checkForExistingSession = useCallback(async () => {
     if (!issue) return
@@ -323,7 +323,11 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                   />
                 </div>
                 <Button onClick={startScoping} disabled={isScoping}>
-                  <Play className="mr-2 h-4 w-4" />
+                  {isScoping ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="mr-2 h-4 w-4" />
+                  )}
                   {isScoping ? 'Starting...' : 'Scope & Triage'}
                 </Button>
               </CardContent>
@@ -334,7 +338,12 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  Devin Analysis
+                  <div className="flex items-center gap-2">
+                    Devin Analysis
+                    {isPolling && session.status !== 'completed' && (
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                    )}
+                  </div>
                   <a
                     href={session.url}
                     target="_blank"
@@ -403,14 +412,23 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                     <div>
                       <h5 className="font-semibold mb-2">Action Plan</h5>
                       <div className="space-y-2">
-                        {session.structured_output.action_plan.map((step) => (
-                          <div key={step.step} className="flex items-start gap-2">
-                            <CheckCircle className={`h-4 w-4 mt-1 ${step.done ? 'text-green-500' : 'text-gray-300'}`} />
-                            <span className={`text-sm ${step.done ? 'line-through text-gray-500' : ''}`}>
-                              {step.step}. {step.desc}
-                            </span>
-                          </div>
-                        ))}
+                        {session.structured_output.action_plan.map((step, index) => {
+                          const isCurrentStep = !step.done && index === session.structured_output?.action_plan.findIndex(s => !s.done)
+                          return (
+                            <div key={step.step} className="flex items-start gap-2">
+                              {step.done ? (
+                                <CheckCircle className="h-4 w-4 mt-1 text-green-500" />
+                              ) : isCurrentStep && session.status === 'running' ? (
+                                <Loader2 className="h-4 w-4 mt-1 animate-spin text-blue-600" />
+                              ) : (
+                                <CheckCircle className="h-4 w-4 mt-1 text-gray-300" />
+                              )}
+                              <span className={`text-sm ${step.done ? 'line-through text-gray-500' : ''}`}>
+                                {step.step}. {step.desc}
+                              </span>
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
 
@@ -523,7 +541,11 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                         </div>
                         <div className="flex gap-2">
                           <Button onClick={executePlan} disabled={isExecuting || !branchName.trim() || !targetBranch.trim()}>
-                            <Play className="mr-2 h-4 w-4" />
+                            {isExecuting ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Play className="mr-2 h-4 w-4" />
+                            )}
                             {isExecuting ? 'Executing...' : 'Execute Plan'}
                           </Button>
                           <Button variant="outline" onClick={() => setIsPlanApproved(false)}>
