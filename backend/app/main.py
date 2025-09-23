@@ -45,31 +45,114 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
     }
 
     test_issues = []
-    for i in range(25):
-        labels = []
-        if i % 3 == 0:
-            labels = ["bug", "high-priority", "frontend", "ui", "critical"]
-        elif i % 3 == 1:
-            labels = ["feature", "enhancement"]
-        else:
-            labels = ["documentation", "help-wanted", "good-first-issue",
-                      "backend", "api", "database"]
-        test_issues.append({
-            "id": 1000 + i,
-            "title": f"Test Issue #{i + 1}: Sample issue for testing "
-                     f"dashboard functionality",
-            "body": f"This is a test issue body for issue #{i + 1}. "
-                    f"It contains sample content for testing the Issue "
-                    f"Dashboard.",
-            "labels": labels,
-            "number": i + 1,
-            "author": f"user{i % 5 + 1}",
-            "created_at": datetime.now() - timedelta(days=i),
-            "age_days": i,
-            "status": "open",
-        })
+    
+    test_scenarios = [
+        {"count": 10, "type": "standard", "status": "open"},
+        {"count": 3, "type": "long_content", "status": "open"},
+        {"count": 2, "type": "no_labels", "status": "open"},
+        {"count": 2, "type": "many_labels", "status": "open"},
+        {"count": 3, "type": "closed", "status": "closed"},
+        {"count": 2, "type": "old_issues", "status": "open"},
+        {"count": 3, "type": "recent_issues", "status": "open"}
+    ]
+    
+    issue_id = 1000
+    for scenario in test_scenarios:
+        for i in range(scenario["count"]):
+            labels = []
+            title = ""
+            body = ""
+            age_days = i
+            
+            if scenario["type"] == "standard":
+                if i % 3 == 0:
+                    labels = ["bug", "high-priority", "frontend", "ui",
+                              "critical"]
+                elif i % 3 == 1:
+                    labels = ["feature", "enhancement"]
+                else:
+                    labels = ["documentation", "help-wanted",
+                              "good-first-issue", "backend", "api",
+                              "database"]
+                title = (f"Test Issue #{issue_id - 999}: Sample issue for "
+                         f"testing dashboard functionality")
+                body = (f"This is a test issue body for issue "
+                        f"#{issue_id - 999}. It contains sample content "
+                        f"for testing the Issue Dashboard.")
+            
+            elif scenario["type"] == "long_content":
+                labels = ["bug", "ui", "overflow-test"]
+                title = (f"Very Long Issue Title That Should Test UI "
+                         f"Overflow Handling And Responsive Design In The "
+                         f"Dashboard Component #{issue_id - 999}")
+                body = ("This is an extremely long issue body that "
+                        "contains multiple paragraphs and extensive "
+                        "content to test how the dashboard handles "
+                        "overflow, truncation, and responsive design. "
+                        * 10)
+            
+            elif scenario["type"] == "no_labels":
+                labels = []
+                title = f"Issue Without Labels #{issue_id - 999}"
+                body = "This issue has no labels to test empty label handling."
+            
+            elif scenario["type"] == "many_labels":
+                labels = ["bug", "feature", "enhancement", "documentation",
+                          "help-wanted", "good-first-issue", "backend",
+                          "frontend", "api", "database", "ui", "critical",
+                          "high-priority", "low-priority", "wontfix",
+                          "duplicate"]
+                title = f"Issue With Many Labels #{issue_id - 999}"
+                body = ("This issue has many labels to test label overflow "
+                        "and tooltip functionality.")
+            
+            elif scenario["type"] == "closed":
+                labels = ["bug", "fixed"]
+                title = f"Closed Issue #{issue_id - 999}"
+                body = "This is a closed issue to test status filtering."
+            
+            elif scenario["type"] == "old_issues":
+                labels = ["legacy", "technical-debt"]
+                title = f"Old Issue #{issue_id - 999}"
+                body = "This is an old issue to test age-based sorting."
+                age_days = 365 + i * 30
+            
+            elif scenario["type"] == "recent_issues":
+                labels = ["new", "urgent"]
+                title = f"Recent Issue #{issue_id - 999}"
+                body = "This is a recent issue to test recent sorting."
+                age_days = i
+            
+            test_issues.append({
+                "id": issue_id,
+                "title": title,
+                "body": body,
+                "labels": labels,
+                "number": issue_id - 999,
+                "author": f"user{(issue_id % 5) + 1}",
+                "created_at": datetime.now() - timedelta(days=age_days),
+                "age_days": age_days,
+                "status": scenario["status"],
+            })
+            issue_id += 1
 
     issues_store[test_repo_id] = test_issues
+    
+    print(f"✅ Loaded {len(test_issues)} test issues for {test_repo_id}")
+    print(f"   - Issues with labels: "
+          f"{len([i for i in test_issues if i['labels']])}")
+    print(f"   - Issues without labels: "
+          f"{len([i for i in test_issues if not i['labels']])}")
+    print(f"   - Open issues: "
+          f"{len([i for i in test_issues if i['status'] == 'open'])}")
+    print(f"   - Closed issues: "
+          f"{len([i for i in test_issues if i['status'] == 'closed'])}")
+    print(f"   - Age range: {min(i['age_days'] for i in test_issues)} to "
+          f"{max(i['age_days'] for i in test_issues)} days")
+    
+    repos_store[test_repo_id]["openIssuesCount"] = len([
+        i for i in test_issues if i['status'] == 'open'
+    ])
 
 
 class ConnectRepoRequest(BaseModel):

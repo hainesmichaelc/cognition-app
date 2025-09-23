@@ -86,7 +86,8 @@ health:
 help:
 	@echo "Available commands:"
 	@echo "  make dev         - Start both frontend and backend servers (clean, no test data)"
-	@echo "  make test        - Start both frontend and backend servers with test data loaded"
+	@echo "  make test        - Start both frontend and backend servers with comprehensive test data"
+	@echo "                     (includes 25+ test issues with various scenarios for dashboard testing)"
 	@echo "  make install-deps - Install all dependencies"
 	@echo "  make format      - Format code"
 	@echo "  make lint        - Lint code"

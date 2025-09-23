@@ -143,6 +143,17 @@ VITE_API_URL=http://localhost:8000
 - Re-sync capability for GitHub repositories
 - Default sorting by most recent issues
 
+### Test Data Scenarios (when using `make test`)
+The test data system creates comprehensive scenarios to test all dashboard features:
+- **Standard Issues**: Mixed labels and content for general testing
+- **Long Content**: Tests UI overflow and responsive design
+- **No Labels**: Tests empty label state handling
+- **Many Labels**: Tests label overflow and tooltip functionality  
+- **Closed Issues**: Tests status filtering capabilities
+- **Old Issues**: Tests age-based sorting (1+ years old)
+- **Recent Issues**: Tests recent issue prioritization
+- **Various Authors**: Tests author filtering and display
+
 ### Issue Detail Modal
 - Complete issue metadata display
 - Scope & Triage workflow with Devin AI integration
