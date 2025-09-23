@@ -44,8 +44,18 @@ export function useSessionManager() {
       const response = await fetch(`${API_BASE_URL}/api/sessions/active`)
       if (response.ok) {
         const sessions = await response.json()
-        setActiveSessions(sessions)
-        return sessions
+        const transformedSessions = sessions.map((session: any) => ({
+          sessionId: session.session_id,
+          issueId: session.issue_id,
+          repoId: session.repo_id,
+          issueTitle: session.issue_title,
+          repoName: session.repo_name,
+          status: session.status,
+          createdAt: session.created_at,
+          lastAccessed: session.last_accessed
+        }))
+        setActiveSessions(transformedSessions)
+        return transformedSessions
       }
     } catch (error) {
       console.error('Failed to fetch active sessions:', error)

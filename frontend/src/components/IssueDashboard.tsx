@@ -445,7 +445,7 @@ export default function IssueDashboard() {
                         {issue.author}
                       </a>
                     </TableCell>
-                      <TableCell>{issue.age_days} days</TableCell>
+                    <TableCell>{issue.age_days} days</TableCell>
                     </TableRow>
                   )
                 })}
