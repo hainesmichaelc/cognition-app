@@ -499,7 +499,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                       </div>
                     </div>
 
-                    {session.structured_output?.status === 'AWAITING_APPROVAL' && !isPlanApproved && (
+                    {session.status === 'blocked' && !isPlanApproved && (
                       <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <Clock className="h-5 w-5 text-blue-600" />
@@ -536,7 +536,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                       </div>
                     )}
 
-                    {session.status === 'completed' && !isPlanApproved && !session.structured_output?.pr_url && session.structured_output?.status !== 'AWAITING_APPROVAL' && (
+                    {session.status === 'completed' && !isPlanApproved && !session.structured_output?.pr_url && (
                       <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <CheckCircle className="h-5 w-5 text-blue-600" />
