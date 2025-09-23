@@ -281,6 +281,11 @@ export default function IssueDashboard() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Issue Dashboard</h2>
+          {repoData && (
+            <p className="text-lg text-muted-foreground mb-2">
+              {repoData.owner}/{repoData.name}
+            </p>
+          )}
           <p className="text-muted-foreground">
             Manage and triage repository issues
             {activeSessions.length > 0 && (
