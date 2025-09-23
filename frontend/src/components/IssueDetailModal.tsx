@@ -544,6 +544,20 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                       </span>
                     </>
                   )}
+                  {session.structured_output?.pr_url && (
+                    <>
+                      {' • '}
+                      <a
+                        href={session.structured_output.pr_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        PR
+                      </a>
+                    </>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -731,6 +745,24 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                           <ExternalLink className="h-4 w-4" />
                           View Pull Request
                         </a>
+                      </div>
+                    )}
+
+                    {session.structured_output?.pr_url && (
+                      <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">Pull Request Created</span>
+                          <a
+                            href={session.structured_output.pr_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            View PR
+                          </a>
+                        </div>
                       </div>
                     )}
 
