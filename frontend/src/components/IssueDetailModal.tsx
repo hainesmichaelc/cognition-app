@@ -766,22 +766,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                       </div>
                     )}
 
-                    <div className="flex gap-4 items-end">
-                      <div className="flex-1">
-                        <Label htmlFor="follow-up">Send Follow-up</Label>
-                        <Textarea
-                          id="follow-up"
-                          placeholder="Ask questions or provide additional guidance..."
-                          value={followUpMessage}
-                          onChange={(e) => setFollowUpMessage(e.target.value)}
-                          rows={2}
-                        />
-                      </div>
-                      <Button onClick={sendFollowUp} disabled={!followUpMessage.trim()}>
-                        <MessageSquare className="mr-2 h-4 w-4" />
-                        Send
-                      </Button>
-                    </div>
 
                     {isPlanApproved && !session.structured_output?.pr_url && (
                       <div className="border-t pt-4">
@@ -823,6 +807,48 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                     )}
                   </>
                 )}
+
+                {/* Follow-up message UI - always available for active sessions */}
+                {(session.status === 'running' || session.status === 'blocked') && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+                    <div className="flex items-start gap-2">
+                      <MessageSquare className="h-4 w-4 text-blue-600 mt-0.5" />
+                      <div className="text-sm text-blue-700">
+                        <p className="font-medium mb-1">
+                          {session.status === 'running' 
+                            ? "Devin is actively working on this issue" 
+                            : "Devin is waiting for guidance"}
+                        </p>
+                        <p>
+                          You can add additional context, requirements, or guidance at any time using the message box below.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-4 items-end">
+                  <div className="flex-1">
+                    <Label htmlFor="follow-up">Send Follow-up</Label>
+                    <Textarea
+                      id="follow-up"
+                      placeholder={
+                        session.status === 'running' 
+                          ? "Add context or guidance while Devin is working..." 
+                          : session.status === 'blocked'
+                          ? "Provide additional context or answer questions..."
+                          : "Ask questions or provide additional guidance..."
+                      }
+                      value={followUpMessage}
+                      onChange={(e) => setFollowUpMessage(e.target.value)}
+                      rows={2}
+                    />
+                  </div>
+                  <Button onClick={sendFollowUp} disabled={!followUpMessage.trim()}>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Send
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
