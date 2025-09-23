@@ -44,8 +44,8 @@ export default function IssueDashboard() {
   const [totalIssues, setTotalIssues] = useState(0)
   const [issueUpdates, setIssueUpdates] = useState<Record<number, {status: string, prUrl?: string}>>({})
   const [repoData, setRepoData] = useState<{owner: string, name: string, url: string} | null>(null)
-  const [sortBy, setSortBy] = useState('created_at')
-  const [sortOrder, setSortOrder] = useState('desc')
+  const [sortBy, setSortBy] = useState('age_days')
+  const [sortOrder, setSortOrder] = useState('asc')
   const pageSize = 20
 
   useEffect(() => {
@@ -167,8 +167,8 @@ export default function IssueDashboard() {
   const resetFilters = () => {
     setSearchQuery('')
     setSelectedLabel('')
-    setSortBy('created_at')
-    setSortOrder('desc')
+    setSortBy('age_days')
+    setSortOrder('asc')
     setCurrentPage(1)
     setLoading(true)
     fetchIssues()
