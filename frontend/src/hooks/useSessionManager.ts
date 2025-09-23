@@ -54,6 +54,11 @@ export function useSessionManager() {
   }, [])
 
   const fetchSessionDetails = useCallback(async (sessionId: string) => {
+    if (!sessionId || sessionId === 'null' || sessionId === 'undefined') {
+      console.warn('fetchSessionDetails called with invalid sessionId:', sessionId)
+      return null
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/devin/${sessionId}`)
       if (response.ok) {
@@ -111,7 +116,9 @@ export function useSessionManager() {
       const sessions = await fetchActiveSessions()
       
       for (const session of sessions) {
-        await fetchSessionDetails(session.sessionId)
+        if (session.sessionId && session.sessionId !== 'null' && session.sessionId !== 'undefined') {
+          await fetchSessionDetails(session.sessionId)
+        }
       }
     }, 10000) // Poll every 10 seconds
 
