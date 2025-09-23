@@ -130,6 +130,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
       if (response.ok) {
         const data = await response.json()
         setSessionId(data.sessionId)
+        await fetchSessionDetails(data.sessionId)
         toast({
           title: "Success",
           description: "Scoping session started"
