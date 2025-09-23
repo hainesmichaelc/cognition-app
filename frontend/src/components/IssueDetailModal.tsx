@@ -35,7 +35,6 @@ interface DevinSession {
     summary: string
     risks: string[]
     dependencies: string[]
-    estimated_hours: number
     action_plan: Array<{
       step: number
       desc: string

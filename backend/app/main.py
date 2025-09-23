@@ -904,6 +904,7 @@ following schema:
 {{
   "progress_pct": 100,
   "confidence": "low|medium|high",
+  "status": "scoping",
   "summary": "one-paragraph implementation plan",
   "risks": ["list of potential risks"],
   "dependencies": ["list of dependencies"],
@@ -912,6 +913,8 @@ following schema:
 "done":false}}],
   "branch_suggestion": "feat/issue-{issue_number}-<slug>"
 }}
+
+Status should be "scoping" during analysis phase, "blocked" when waiting for approval, "executing" during implementation, and "completed" when finished.
 
 Guidelines:
 - PLANNING PHASE ONLY - Do NOT implement anything
@@ -1108,10 +1111,16 @@ Provide the created PR URL in your final message and set Structured Output:
 {{
   "progress_pct": 100,
   "confidence": "<final assessment>",
+  "status": "completed",
   "summary": "Implemented",
+  "risks": ["any implementation risks encountered"],
+  "dependencies": ["dependencies used"],
   "action_plan": [... with done=true],
+  "branch_suggestion": "feat/issue-{issue_number}-<slug>",
   "pr_url": "<url>"
-}}"""
+}}
+
+Status should be "executing" during implementation and "completed" when finished with PR created."""
 
     try:
         await devin_api.send_message(request.sessionId, execution_prompt)
