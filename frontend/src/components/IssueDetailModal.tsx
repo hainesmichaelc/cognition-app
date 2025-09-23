@@ -40,6 +40,7 @@ interface DevinSession {
     }>
     branch_suggestion: string
     pr_url: string
+    status?: string
   }
   url: string
 }

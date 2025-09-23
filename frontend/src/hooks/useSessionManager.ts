@@ -119,7 +119,7 @@ export function useSessionManager() {
       clearInterval(interval)
       setIsPolling(false)
     }
-  }, [isPolling, fetchActiveSessions, fetchSessionDetails])
+  }, [fetchActiveSessions, fetchSessionDetails])
 
   const stopPolling = useCallback(() => {
     setIsPolling(false)
