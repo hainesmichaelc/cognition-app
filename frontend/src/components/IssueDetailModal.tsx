@@ -244,8 +244,10 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
       if (response.ok) {
         setFollowUpMessage('')
         toast({
-          title: "Success",
-          description: "Follow-up sent successfully"
+          title: "Message sent successfully",
+          description: session?.status === 'running' 
+            ? "Your context has been sent to Devin while working"
+            : "Your message has been sent to Devin",
         })
       } else {
         toast({
@@ -765,46 +767,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                         </div>
                       </div>
                     )}
-
-
-                    {isPlanApproved && !session.structured_output?.pr_url && (
-                      <div className="border-t pt-4">
-                        <h5 className="font-semibold mb-2">Execute Plan</h5>
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                          <div>
-                            <Label htmlFor="branch-name">Branch Name</Label>
-                            <Input
-                              id="branch-name"
-                              value={branchName}
-                              onChange={(e) => setBranchName(e.target.value)}
-                              placeholder="feat/issue-123-implementation"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="target-branch">Target Branch</Label>
-                            <Input
-                              id="target-branch"
-                              value={targetBranch}
-                              onChange={(e) => setTargetBranch(e.target.value)}
-                              placeholder="main"
-                            />
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button onClick={executePlan} disabled={isExecuting || !branchName.trim() || !targetBranch.trim()}>
-                            {isExecuting ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <Play className="mr-2 h-4 w-4" />
-                            )}
-                            {isExecuting ? 'Executing...' : 'Execute Plan'}
-                          </Button>
-                          <Button variant="outline" onClick={() => setIsPlanApproved(false)}>
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    )}
                   </>
                 )}
 
@@ -849,6 +811,45 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                     Send
                   </Button>
                 </div>
+
+                    {isPlanApproved && !session.structured_output?.pr_url && (
+                      <div className="border-t pt-4">
+                        <h5 className="font-semibold mb-2">Execute Plan</h5>
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <Label htmlFor="branch-name">Branch Name</Label>
+                            <Input
+                              id="branch-name"
+                              value={branchName}
+                              onChange={(e) => setBranchName(e.target.value)}
+                              placeholder="feat/issue-123-implementation"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="target-branch">Target Branch</Label>
+                            <Input
+                              id="target-branch"
+                              value={targetBranch}
+                              onChange={(e) => setTargetBranch(e.target.value)}
+                              placeholder="main"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={executePlan} disabled={isExecuting || !branchName.trim() || !targetBranch.trim()}>
+                            {isExecuting ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Play className="mr-2 h-4 w-4" />
+                            )}
+                            {isExecuting ? 'Executing...' : 'Execute Plan'}
+                          </Button>
+                          <Button variant="outline" onClick={() => setIsPlanApproved(false)}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
               </CardContent>
             </Card>
           )}
