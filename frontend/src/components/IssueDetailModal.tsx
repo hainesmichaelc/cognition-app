@@ -526,10 +526,15 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                   </a>
                 </CardTitle>
                 <CardDescription>
-                  Status: {session.status} • 
-                  <span className={`ml-1 font-medium ${getConfidenceColor(session.structured_output?.confidence || '')}`}>
-                    {session.structured_output?.confidence} confidence
-                  </span>
+                  Status: {session.status}
+                  {session.structured_output && (
+                    <>
+                      {' • '}
+                      <span className={`ml-1 font-medium ${getConfidenceColor(session.structured_output.confidence || '')}`}>
+                        {session.structured_output.confidence} confidence
+                      </span>
+                    </>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
