@@ -11,6 +11,17 @@ interface SessionData {
   lastAccessed: string
 }
 
+interface ActiveSessionApiResponse {
+  session_id: string
+  issue_id: number
+  repo_id: string
+  issue_title: string
+  repo_name: string
+  status: string
+  created_at: string
+  last_accessed: string
+}
+
 interface DevinSession {
   status: string
   structured_output?: {
@@ -37,13 +48,14 @@ export function useSessionManager() {
   const [activeSessions, setActiveSessions] = useState<SessionData[]>([])
   const [sessionDetails, setSessionDetails] = useState<Record<string, DevinSession>>({})
   const [isPolling, setIsPolling] = useState(false)
+  const [completedSessions, setCompletedSessions] = useState<Record<string, number>>({}) // sessionId -> timestamp
 
   const fetchActiveSessions = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/sessions/active`)
       if (response.ok) {
         const sessions = await response.json()
-        const transformedSessions = sessions.map((session: any) => ({
+        const transformedSessions = sessions.map((session: ActiveSessionApiResponse) => ({
           sessionId: session.session_id,
           issueId: session.issue_id,
           repoId: session.repo_id,
@@ -72,6 +84,14 @@ export function useSessionManager() {
       const response = await fetch(`${API_BASE_URL}/api/devin/${sessionId}`)
       if (response.ok) {
         const sessionData = await response.json()
+        
+        if (sessionData.status === 'completed' && !completedSessions[sessionId]) {
+          setCompletedSessions(prev => ({
+            ...prev,
+            [sessionId]: Date.now()
+          }))
+        }
+        
         setSessionDetails(prev => ({
           ...prev,
           [sessionId]: sessionData
@@ -82,7 +102,7 @@ export function useSessionManager() {
       console.error(`Failed to fetch session details for ${sessionId}:`, error)
     }
     return null
-  }, [])
+  }, [completedSessions])
 
   const getIssueSession = useCallback(async (issueId: number) => {
     try {
@@ -131,13 +151,32 @@ export function useSessionManager() {
           await fetchSessionDetails(session.sessionId)
         }
       }
+      
+      const now = Date.now()
+      const fiveMinutesAgo = now - (5 * 60 * 1000)
+      
+      for (const [sessionId, completedTime] of Object.entries(completedSessions)) {
+        if (completedTime > fiveMinutesAgo) {
+          await fetchSessionDetails(sessionId)
+        }
+      }
+      
+      setCompletedSessions(prev => {
+        const updated = { ...prev }
+        for (const [sessionId, completedTime] of Object.entries(updated)) {
+          if (completedTime <= fiveMinutesAgo) {
+            delete updated[sessionId]
+          }
+        }
+        return updated
+      })
     }, 10000) // Poll every 10 seconds
 
     return () => {
       clearInterval(interval)
       setIsPolling(false)
     }
-  }, [fetchActiveSessions, fetchSessionDetails])
+  }, [fetchActiveSessions, fetchSessionDetails, completedSessions, isPolling])
 
   const stopPolling = useCallback(() => {
     setIsPolling(false)
