@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -325,13 +325,14 @@ export default function IssueDashboard() {
         </Button>
       </div>
 
+      <SearchFilterWarning 
+        show={hasMoreFromGithub && (searchQuery !== '' || selectedLabel !== '')} 
+      />
+
       <Card>
         <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardDescription>Search and filter issues</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 items-end">
+          <CardTitle>Issues ({issues.length})</CardTitle>
+          <div className="flex gap-4 items-end mt-4">
             <div className="flex-1">
               <Input
                 placeholder="Search issues..."
@@ -383,16 +384,6 @@ export default function IssueDashboard() {
               Reset
             </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      <SearchFilterWarning 
-        show={hasMoreFromGithub && (searchQuery !== '' || selectedLabel !== '')} 
-      />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Issues ({issues.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {issues.length === 0 ? (
