@@ -92,7 +92,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     } catch (error) {
       console.error('Failed to check for existing session:', error)
     }
-  }, [issue])
+  }, [issue, getIssueSession, fetchSessionDetails])
 
   useEffect(() => {
     if (session?.structured_output?.branch_suggestion && !branchName) {
@@ -104,7 +104,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     if (isOpen && issue) {
       checkForExistingSession()
     }
-  }, [isOpen, issue])
+  }, [isOpen, issue, checkForExistingSession])
 
   useEffect(() => {
     if (sessionId && sessionDetails[sessionId]) {
@@ -115,7 +115,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
         onIssueUpdate?.(issue.id, 'PR Submitted', sessionData.structured_output.pr_url)
       }
     }
-  }, [sessionId, sessionDetails, issue])
+  }, [sessionId, sessionDetails, issue, onIssueUpdate])
 
   useEffect(() => {
     if (issue) {
@@ -181,7 +181,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     }
 
     handleAutoExecution()
-  }, [session?.status, session?.structured_output?.confidence, session?.structured_output?.branch_suggestion, isPlanApproved, isExecuting, sessionId, issue])
+  }, [session?.status, session?.structured_output?.confidence, session?.structured_output?.branch_suggestion, isPlanApproved, isExecuting, sessionId, issue, toast])
 
   const startScoping = async () => {
     if (!issue) return
