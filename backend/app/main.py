@@ -1086,7 +1086,7 @@ async def get_devin_session(session_id: str):
             messages = session_data.get("messages", [])
             structured_output = extract_structured_output_from_messages(messages)
             
-            if structured_output is None and (status in ["blocked", "completed"] or len(messages) > 1):
+            if structured_output is None and status in ["blocked", "completed"]:
                 structured_output = {
                     "progress_pct": 0,
                     "confidence": "low",
