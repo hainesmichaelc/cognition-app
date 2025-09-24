@@ -528,7 +528,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     Devin Analysis
-                    {isPolling && !isSessionCompleted(session) && (
+                    {isPolling && !isSessionCompleted(session) && session.status !== 'new' && (
                       <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                     )}
                   </div>
@@ -622,7 +622,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                         {session.structured_output?.action_plan.map((step, index) => {
                           const isCurrentStep = !step.done && index === session.structured_output?.action_plan.findIndex(s => !s.done)
                           return (
-                            <div key={`${step.step}-${step.done}`} className="flex items-start gap-2">
+                            <div key={`action-${step.step}`} className="flex items-start gap-2">
                               {step.done ? (
                                 <CheckCircle className="h-4 w-4 mt-1 text-green-500" />
                               ) : isCurrentStep && session.status === 'running' && !isSessionCompleted(session) ? (
