@@ -85,11 +85,16 @@ export function useSessionManager() {
       if (response.ok) {
         const sessionData = await response.json()
         
-        if (sessionData.status === 'completed' && !completedSessions[sessionId]) {
-          setCompletedSessions(prev => ({
-            ...prev,
-            [sessionId]: Date.now()
-          }))
+        if (sessionData.status === 'completed') {
+          setCompletedSessions(prev => {
+            if (!prev[sessionId]) {
+              return {
+                ...prev,
+                [sessionId]: Date.now()
+              }
+            }
+            return prev
+          })
         }
         
         setSessionDetails(prev => ({
@@ -102,7 +107,7 @@ export function useSessionManager() {
       console.error(`Failed to fetch session details for ${sessionId}:`, error)
     }
     return null
-  }, [completedSessions])
+  }, [])
 
   const getIssueSession = useCallback(async (issueId: number) => {
     try {
@@ -155,14 +160,15 @@ export function useSessionManager() {
       const now = Date.now()
       const fiveMinutesAgo = now - (5 * 60 * 1000)
       
-      for (const [sessionId, completedTime] of Object.entries(completedSessions)) {
-        if (completedTime > fiveMinutesAgo) {
-          await fetchSessionDetails(sessionId)
-        }
-      }
-      
       setCompletedSessions(prev => {
         const updated = { ...prev }
+        
+        for (const [sessionId, completedTime] of Object.entries(prev)) {
+          if (completedTime > fiveMinutesAgo) {
+            fetchSessionDetails(sessionId)
+          }
+        }
+        
         for (const [sessionId, completedTime] of Object.entries(updated)) {
           if (completedTime <= fiveMinutesAgo) {
             delete updated[sessionId]
@@ -176,7 +182,7 @@ export function useSessionManager() {
       clearInterval(interval)
       setIsPolling(false)
     }
-  }, [fetchActiveSessions, fetchSessionDetails, completedSessions, isPolling])
+  }, [fetchActiveSessions, isPolling])
 
   const stopPolling = useCallback(() => {
     setIsPolling(false)

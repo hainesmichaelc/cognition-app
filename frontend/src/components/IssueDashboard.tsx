@@ -49,14 +49,6 @@ export default function IssueDashboard() {
   const [sortOrder, setSortOrder] = useState('asc')
   const pageSize = 100
 
-  useEffect(() => {
-    if (owner && name) {
-      fetchIssues()
-      fetchRepoData()
-    }
-  }, [owner, name, selectedLabel, sortBy, sortOrder])
-
-
   const fetchIssues = useCallback(async (loadMore = false, customSearchQuery = searchQuery, customSelectedLabel = selectedLabel, customSortBy = sortBy, customSortOrder = sortOrder) => {
     if (!owner || !name) return
     
@@ -107,7 +99,7 @@ export default function IssueDashboard() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [owner, name, pageSize])
+  }, [owner, name, pageSize, searchQuery, selectedLabel, sortBy, sortOrder, toast])
 
   const fetchRepoData = useCallback(async () => {
     if (!owner || !name) return
@@ -125,6 +117,13 @@ export default function IssueDashboard() {
       console.error('Failed to fetch repository data:', error)
     }
   }, [owner, name])
+
+  useEffect(() => {
+    if (owner && name) {
+      fetchIssues()
+      fetchRepoData()
+    }
+  }, [owner, name, selectedLabel, sortBy, sortOrder, fetchIssues, fetchRepoData])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -147,7 +146,7 @@ export default function IssueDashboard() {
         observer.unobserve(sentinel)
       }
     }
-  }, [loadingMore, hasMoreFromGithub, allIssuesLoaded])
+  }, [loadingMore, hasMoreFromGithub, allIssuesLoaded, fetchIssues])
 
   const resyncRepo = async () => {
     if (!owner || !name) return
