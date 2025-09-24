@@ -181,7 +181,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     }
 
     handleAutoExecution()
-  }, [session?.status, session?.structured_output?.confidence, session?.structured_output?.branch_suggestion, isPlanApproved, isExecuting, sessionId, issue, toast])
+  }, [session?.status, session?.structured_output?.confidence, session?.structured_output?.branch_suggestion, isPlanApproved, isExecuting, sessionId, issue])
 
   const startScoping = async () => {
     if (!issue) return
