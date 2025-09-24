@@ -431,7 +431,7 @@ async def fetch_github_issues_batch(
         response = await client.get(
             f"https://api.github.com/repos/{owner}/{name}/issues",
             headers=headers,
-            params={"state": "open", "per_page": 100, "page": page},
+            params={"state": "open", "type": "issue", "per_page": 100, "page": page},
         )
 
         if response.status_code == 403:
@@ -474,7 +474,7 @@ async def fetch_github_issues_batch(
 async def fetch_all_github_issues(
     client: httpx.AsyncClient, headers: dict, owner: str, name: str
 ) -> List[dict]:
-    """Fetch all open issues from GitHub API using pagination (legacy function)"""
+    """Fetch all open issues (excluding pull requests) from GitHub API using pagination (legacy function)"""
     issues, _ = await fetch_github_issues_batch(client, headers, owner, name)
     return issues
 
@@ -611,15 +611,14 @@ async def connect_repo(request: ConnectRepoRequest):
 
             processed_issues = []
             for issue in issues_data:
-                if "pull_request" not in issue:  # Skip PRs
-                    age_days = (
+                age_days = (
                         datetime.now(timezone.utc)
                         - datetime.fromisoformat(
                             issue["created_at"].replace("Z", "+00:00")
                         )
                     ).days
-                    processed_issues.append(
-                        {
+                processed_issues.append(
+                    {
                             "id": issue["id"],
                             "title": issue["title"],
                             "body": issue["body"] or "",
@@ -731,29 +730,28 @@ async def resync_repo(owner: str, name: str, request: ResyncRequest):
 
             processed_issues = []
             for issue in issues_data:
-                if "pull_request" not in issue:  # Skip PRs
-                    age_days = (
+                age_days = (
                         datetime.now(timezone.utc)
                         - datetime.fromisoformat(
                             issue["created_at"].replace("Z", "+00:00")
                         )
                     ).days
-                    processed_issues.append(
-                        {
-                            "id": issue["id"],
-                            "title": issue["title"],
-                            "body": issue["body"] or "",
-                            "labels": [label["name"] for label in
-                                       issue["labels"]],
-                            "number": issue["number"],
-                            "author": issue["user"]["login"],
-                            "created_at": datetime.fromisoformat(
-                                issue["created_at"].replace("Z", "+00:00")
-                            ),
-                            "age_days": age_days,
-                            "status": "open",
-                        }
-                    )
+                processed_issues.append(
+                    {
+                        "id": issue["id"],
+                        "title": issue["title"],
+                        "body": issue["body"] or "",
+                        "labels": [label["name"] for label in
+                                   issue["labels"]],
+                        "number": issue["number"],
+                        "author": issue["user"]["login"],
+                        "created_at": datetime.fromisoformat(
+                            issue["created_at"].replace("Z", "+00:00")
+                        ),
+                        "age_days": age_days,
+                        "status": "open",
+                    }
+                )
 
             issues_store[repo_id] = processed_issues
             repos_store[repo_id]["openIssuesCount"] = len(processed_issues)
@@ -820,28 +818,27 @@ async def get_issues(
                 
                 processed_new_issues = []
                 for issue in new_issues:
-                    if "pull_request" not in issue:  # Skip PRs
-                        age_days = (
-                            datetime.now(timezone.utc)
-                            - datetime.fromisoformat(
-                                issue["created_at"].replace("Z", "+00:00")
-                            )
-                        ).days
-                        processed_new_issues.append(
-                            {
-                                "id": issue["id"],
-                                "title": issue["title"],
-                                "body": issue["body"] or "",
-                                "labels": [label["name"] for label in issue["labels"]],
-                                "number": issue["number"],
-                                "author": issue["user"]["login"],
-                                "created_at": datetime.fromisoformat(
-                                    issue["created_at"].replace("Z", "+00:00")
-                                ),
-                                "age_days": age_days,
-                                "status": "open",
-                            }
+                    age_days = (
+                        datetime.now(timezone.utc)
+                        - datetime.fromisoformat(
+                            issue["created_at"].replace("Z", "+00:00")
                         )
+                    ).days
+                    processed_new_issues.append(
+                        {
+                            "id": issue["id"],
+                            "title": issue["title"],
+                            "body": issue["body"] or "",
+                            "labels": [label["name"] for label in issue["labels"]],
+                            "number": issue["number"],
+                            "author": issue["user"]["login"],
+                            "created_at": datetime.fromisoformat(
+                                issue["created_at"].replace("Z", "+00:00")
+                            ),
+                            "age_days": age_days,
+                            "status": "open",
+                        }
+                    )
                 
                 issues_store[repo_id].extend(processed_new_issues)
                 repos_store[repo_id]["github_issues_fetched_count"] += len(processed_new_issues)
