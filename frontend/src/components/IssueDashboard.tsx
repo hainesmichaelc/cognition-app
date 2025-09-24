@@ -188,7 +188,7 @@ export default function IssueDashboard() {
   }
 
   const handleSearch = () => {
-    fetchIssues(false)
+    fetchIssues(false, searchQuery, selectedLabel, sortBy, sortOrder)
   }
 
   const resetFilters = () => {
