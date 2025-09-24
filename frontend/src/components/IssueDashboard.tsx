@@ -49,7 +49,7 @@ export default function IssueDashboard() {
   const [sortOrder, setSortOrder] = useState('asc')
   const pageSize = 100
 
-  const fetchIssues = useCallback(async (loadMore = false, customSearchQuery = searchQuery, customSelectedLabel = selectedLabel, customSortBy = sortBy, customSortOrder = sortOrder) => {
+  const fetchIssues = useCallback(async (loadMore = false, customSearchQuery?: string, customSelectedLabel?: string, customSortBy?: string, customSortOrder?: string) => {
     if (!owner || !name) return
     
     try {
@@ -61,12 +61,17 @@ export default function IssueDashboard() {
       }
       
       const params = new URLSearchParams()
-      if (customSearchQuery) params.append('q', customSearchQuery)
-      if (customSelectedLabel) params.append('label', customSelectedLabel)
+      const queryToUse = customSearchQuery !== undefined ? customSearchQuery : searchQuery
+      const labelToUse = customSelectedLabel !== undefined ? customSelectedLabel : selectedLabel
+      const sortByToUse = customSortBy !== undefined ? customSortBy : sortBy
+      const sortOrderToUse = customSortOrder !== undefined ? customSortOrder : sortOrder
+      
+      if (queryToUse) params.append('q', queryToUse)
+      if (labelToUse) params.append('label', labelToUse)
       params.append('page', '1')
       params.append('pageSize', pageSize.toString())
-      params.append('sort_by', customSortBy)
-      params.append('sort_order', customSortOrder)
+      params.append('sort_by', sortByToUse)
+      params.append('sort_order', sortOrderToUse)
       if (loadMore) params.append('load_more', 'true')
       
       const response = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${params}`)
@@ -99,7 +104,7 @@ export default function IssueDashboard() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [owner, name, pageSize, searchQuery, selectedLabel, sortBy, sortOrder, toast])
+  }, [owner, name, pageSize, toast])
 
   const fetchRepoData = useCallback(async () => {
     if (!owner || !name) return
@@ -123,7 +128,13 @@ export default function IssueDashboard() {
       fetchIssues()
       fetchRepoData()
     }
-  }, [owner, name, selectedLabel, sortBy, sortOrder, fetchIssues, fetchRepoData])
+  }, [owner, name])
+
+  useEffect(() => {
+    if (owner && name) {
+      fetchIssues()
+    }
+  }, [selectedLabel, sortBy, sortOrder, owner, name])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -146,7 +157,7 @@ export default function IssueDashboard() {
         observer.unobserve(sentinel)
       }
     }
-  }, [loadingMore, hasMoreFromGithub, allIssuesLoaded, fetchIssues])
+  }, [loadingMore, hasMoreFromGithub, allIssuesLoaded])
 
   const resyncRepo = async () => {
     if (!owner || !name) return
@@ -198,12 +209,12 @@ export default function IssueDashboard() {
     fetchIssues(false)
   }
 
-  const handleIssueUpdate = (issueId: number, status: string, prUrl?: string) => {
+  const handleIssueUpdate = useCallback((issueId: number, status: string, prUrl?: string) => {
     setIssueUpdates(prev => ({
       ...prev,
       [issueId]: { status, prUrl }
     }))
-  }
+  }, [])
 
   const openIssueDetail = (issue: Issue) => {
     setSelectedIssue(issue)
