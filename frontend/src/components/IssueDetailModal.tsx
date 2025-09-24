@@ -619,10 +619,10 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                     <div>
                       <h5 className="font-semibold mb-2">Action Plan</h5>
                       <div className="space-y-2">
-                        {session.structured_output.action_plan.map((step, index) => {
+                        {session.structured_output?.action_plan.map((step, index) => {
                           const isCurrentStep = !step.done && index === session.structured_output?.action_plan.findIndex(s => !s.done)
                           return (
-                            <div key={step.step} className="flex items-start gap-2">
+                            <div key={`${step.step}-${step.done}`} className="flex items-start gap-2">
                               {step.done ? (
                                 <CheckCircle className="h-4 w-4 mt-1 text-green-500" />
                               ) : isCurrentStep && session.status === 'running' && !isSessionCompleted(session) ? (
