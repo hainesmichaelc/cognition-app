@@ -132,9 +132,9 @@ export default function IssueDashboard() {
 
   useEffect(() => {
     if (owner && name) {
-      fetchIssues()
+      fetchIssues(false, searchQuery, selectedLabel, sortBy, sortOrder)
     }
-  }, [selectedLabel, sortBy, sortOrder, owner, name])
+  }, [selectedLabel, sortBy, sortOrder, owner, name, searchQuery])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
