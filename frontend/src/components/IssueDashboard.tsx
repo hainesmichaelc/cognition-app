@@ -54,7 +54,13 @@ export default function IssueDashboard() {
       fetchIssues()
       fetchRepoData()
     }
-  }, [owner, name, searchQuery, selectedLabel, sortBy, sortOrder])
+  }, [owner, name])
+
+  useEffect(() => {
+    if (owner && name) {
+      fetchIssues()
+    }
+  }, [searchQuery, selectedLabel, sortBy, sortOrder])
 
   const fetchIssues = useCallback(async (loadMore = false) => {
     if (!owner || !name) return
@@ -106,7 +112,7 @@ export default function IssueDashboard() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [owner, name, searchQuery, selectedLabel, sortBy, sortOrder, pageSize])
+  }, [owner, name, pageSize, toast])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -129,7 +135,7 @@ export default function IssueDashboard() {
         observer.unobserve(sentinel)
       }
     }
-  }, [loadingMore, hasMoreFromGithub, allIssuesLoaded, fetchIssues])
+  }, [loadingMore, hasMoreFromGithub, allIssuesLoaded])
 
   const fetchRepoData = useCallback(async () => {
     if (!owner || !name) return

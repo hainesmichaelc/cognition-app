@@ -104,7 +104,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     if (isOpen && issue) {
       checkForExistingSession()
     }
-  }, [isOpen, issue, checkForExistingSession])
+  }, [isOpen, issue])
 
   useEffect(() => {
     if (sessionId && sessionDetails[sessionId]) {
@@ -115,7 +115,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
         onIssueUpdate?.(issue.id, 'PR Submitted', sessionData.structured_output.pr_url)
       }
     }
-  }, [sessionId, sessionDetails, issue, onIssueUpdate])
+  }, [sessionId, sessionDetails, issue])
 
   useEffect(() => {
     if (issue) {
