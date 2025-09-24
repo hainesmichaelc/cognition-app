@@ -191,6 +191,7 @@ export default function RepoNavigator() {
                     placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                     value={githubPat}
                     onChange={(e) => setGithubPat(e.target.value)}
+                    className="pr-12"
                   />
                   <Button
                     type="button"
