@@ -1087,6 +1087,19 @@ async def get_devin_session(session_id: str):
         if structured_output is None:
             messages = session_data.get("messages", [])
             structured_output = extract_structured_output_from_messages(messages)
+            
+            if structured_output is None:
+                structured_output = {
+                    "progress_pct": 0,
+                    "confidence": "low",
+                    "status": "scoping",
+                    "summary": "Creating Plan",
+                    "risks": [],
+                    "dependencies": [],
+                    "estimated_hours": 0,
+                    "action_plan": [],
+                    "branch_suggestion": ""
+                }
         
         clean_session_id = session_id.removeprefix("devin-")
         url = session_data.get(
