@@ -431,7 +431,7 @@ async def fetch_github_issues_batch(
         response = await client.get(
             f"https://api.github.com/repos/{owner}/{name}/issues",
             headers=headers,
-            params={"state": "open", "type": "issue", "per_page": 100, "page": page},
+            params={"state": "open", "per_page": 100, "page": page},
         )
 
         if response.status_code == 403:
@@ -611,14 +611,15 @@ async def connect_repo(request: ConnectRepoRequest):
 
             processed_issues = []
             for issue in issues_data:
-                age_days = (
+                if "pull_request" not in issue:  # Skip PRs
+                    age_days = (
                         datetime.now(timezone.utc)
                         - datetime.fromisoformat(
                             issue["created_at"].replace("Z", "+00:00")
                         )
                     ).days
-                processed_issues.append(
-                    {
+                    processed_issues.append(
+                        {
                             "id": issue["id"],
                             "title": issue["title"],
                             "body": issue["body"] or "",
