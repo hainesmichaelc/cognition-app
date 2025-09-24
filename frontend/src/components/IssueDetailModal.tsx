@@ -460,7 +460,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
           {!sessionId && (
             <Card>
               <CardHeader>
-                <CardTitle>Scope & Triage</CardTitle>
+                <CardTitle>Plan & Execute</CardTitle>
                 <CardDescription>
                   Start a Devin session to analyze this issue and create an implementation plan
                 </CardDescription>
@@ -516,7 +516,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                   ) : (
                     <Play className="mr-2 h-4 w-4" />
                   )}
-                  {isScoping ? 'Starting...' : 'Scope & Triage'}
+                  {isScoping ? 'Starting...' : 'Plan & Execute'}
                 </Button>
               </CardContent>
             </Card>
