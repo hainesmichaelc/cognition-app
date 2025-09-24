@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { ArrowLeft, Search, RefreshCw, X, ExternalLink, Loader2, CheckCircle, AlertCircle, Clock, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Search, RefreshCw, X, ExternalLink, Loader2, CheckCircle, AlertCircle, Clock, AlertTriangle, TestTube, BarChart3 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useSessionManager } from '@/hooks/useSessionManager'
 import IssueDetailModal from './IssueDetailModal'
@@ -22,6 +22,13 @@ interface Issue {
   created_at: string
   age_days: number
   status: string
+}
+
+interface TestModeData {
+  scenarios: Record<string, { count: number; description: string }>
+  total_issues: number
+  test_repo_id: string
+  test_data_active: boolean
 }
 
 
@@ -47,6 +54,8 @@ export default function IssueDashboard() {
   const [repoData, setRepoData] = useState<{owner: string, name: string, url: string} | null>(null)
   const [sortBy, setSortBy] = useState('age_days')
   const [sortOrder, setSortOrder] = useState('asc')
+  const [testModeData, setTestModeData] = useState<TestModeData | null>(null)
+  const [showTestPanel, setShowTestPanel] = useState(false)
   const pageSize = 100
 
   useEffect(() => {
@@ -280,6 +289,65 @@ export default function IssueDashboard() {
     }
   }
 
+  const fetchTestModeData = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/test/dashboard-scenarios`)
+      if (response.ok) {
+        const data = await response.json()
+        setTestModeData(data)
+      }
+    } catch {
+      console.log('Test mode not available')
+    }
+  }, [])
+
+  const resetTestData = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/test/reset-data`, {
+        method: 'POST'
+      })
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Test data reset successfully"
+        })
+        fetchIssues(false)
+        fetchTestModeData()
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to reset test data",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const fetchPerformanceData = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/test/performance-data`)
+      if (response.ok) {
+        const data = await response.json()
+        toast({
+          title: "Performance Data",
+          description: `${data.total_issues} issues, ${data.unique_labels} labels, ${data.unique_authors} authors`
+        })
+      }
+    } catch {
+      toast({
+        title: "Error", 
+        description: "Failed to fetch performance data",
+        variant: "destructive"
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (owner && name) {
+      fetchTestModeData()
+    }
+  }, [owner, name, fetchTestModeData])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -304,7 +372,15 @@ export default function IssueDashboard() {
 
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Issue Dashboard</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-3xl font-bold tracking-tight">Issue Dashboard</h2>
+            {testModeData && (
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                <TestTube className="h-3 w-3 mr-1" />
+                Test Mode ({testModeData.total_issues} test issues)
+              </Badge>
+            )}
+          </div>
           {repoData && (
             <p className="text-lg text-muted-foreground mb-2">
               {repoData.owner}/{repoData.name}
@@ -319,15 +395,86 @@ export default function IssueDashboard() {
             )}
           </p>
         </div>
-        <Button onClick={resyncRepo} disabled={syncing}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Syncing...' : 'Re-sync'}
-        </Button>
+        <div className="flex gap-2">
+          {testModeData && (
+            <Button 
+              variant="outline" 
+              onClick={() => setShowTestPanel(!showTestPanel)}
+              className="border-blue-200 text-blue-700 hover:bg-blue-50"
+            >
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Test Panel
+            </Button>
+          )}
+          <Button onClick={resyncRepo} disabled={syncing}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Re-sync'}
+          </Button>
+        </div>
       </div>
 
       <SearchFilterWarning 
         show={hasMoreFromGithub && (searchQuery !== '' || selectedLabel !== '')} 
       />
+
+      {testModeData && showTestPanel && (
+        <Card className="border-blue-200 bg-blue-50/50">
+          <CardHeader>
+            <CardTitle className="text-blue-800 flex items-center gap-2">
+              <TestTube className="h-5 w-5" />
+              Developer Testing Panel
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm">Test Scenarios</h4>
+                <div className="text-xs space-y-1">
+                  {Object.entries(testModeData.scenarios).map(([key, scenario]) => (
+                    <div key={key} className="flex justify-between">
+                      <span>{key.replace('_', ' ')}</span>
+                      <span className="text-muted-foreground">{scenario.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm">Quick Stats</h4>
+                <div className="text-xs space-y-1">
+                  <div>Total Issues: {testModeData.total_issues}</div>
+                  <div>Repository: {testModeData.test_repo_id}</div>
+                  <div>Test Data: Active</div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm">Test Actions</h4>
+                <div className="flex flex-col gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={resetTestData}
+                    className="text-xs"
+                  >
+                    Reset Test Data
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={fetchPerformanceData}
+                    className="text-xs"
+                  >
+                    Show Performance Data
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              <strong>Testing Features:</strong> Pagination stress (50 issues), Unicode content, Edge case labels, 
+              Mixed status, Author variations, Long content overflow, Label tooltip testing
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

@@ -143,16 +143,31 @@ VITE_API_URL=http://localhost:8000
 - Re-sync capability for GitHub repositories
 - Default sorting by most recent issues
 
-### Test Data Scenarios (when using `make test`)
-The test data system creates comprehensive scenarios to test all dashboard features:
-- **Standard Issues**: Mixed labels and content for general testing
-- **Long Content**: Tests UI overflow and responsive design
-- **No Labels**: Tests empty label state handling
-- **Many Labels**: Tests label overflow and tooltip functionality  
-- **Closed Issues**: Tests status filtering capabilities
-- **Old Issues**: Tests age-based sorting (1+ years old)
-- **Recent Issues**: Tests recent issue prioritization
-- **Various Authors**: Tests author filtering and display
+### Enhanced Test Data Scenarios (when using `make dev`)
+The enhanced test data system creates comprehensive scenarios to test all dashboard features:
+
+#### Core Test Scenarios
+- **Standard Issues** (10): Mixed labels and content for general testing
+- **Long Content** (3): Tests UI overflow and responsive design with very long titles and descriptions
+- **No Labels** (2): Tests empty label state handling
+- **Many Labels** (2): Tests label overflow and tooltip functionality with 8+ labels per issue
+- **Closed Issues** (3): Tests status filtering capabilities
+- **Old Issues** (2): Tests age-based sorting (1+ years old)
+- **Recent Issues** (3): Tests recent issue prioritization
+
+#### Enhanced Test Scenarios
+- **Pagination Stress** (50): Large dataset for testing infinite scroll and performance with 150+ total issues
+- **Unicode Content** (5): International text, emojis, and special characters in titles and descriptions
+- **Edge Case Labels** (3): Very long label names, special characters, and unusual formatting
+- **Mixed Status** (4): Various issue states beyond open/closed for comprehensive status testing
+- **Author Variations** (6): Different GitHub username formats, edge cases, and special characters
+
+#### Developer Testing Features
+- **Test Mode Indicator**: Visual badge showing when test data is active
+- **Developer Testing Panel**: Interactive panel with scenario breakdown and testing tools
+- **Performance Monitoring**: Real-time metrics for issue count, labels, and authors
+- **Test Data Reset**: One-click reset functionality for clean testing states
+- **API Testing Endpoints**: Dedicated endpoints for scenario management and performance data
 
 ### Issue Detail Modal
 - Complete issue metadata display

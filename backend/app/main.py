@@ -55,7 +55,12 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
         {"count": 2, "type": "many_labels", "status": "open"},
         {"count": 3, "type": "closed", "status": "closed"},
         {"count": 2, "type": "old_issues", "status": "open"},
-        {"count": 3, "type": "recent_issues", "status": "open"}
+        {"count": 3, "type": "recent_issues", "status": "open"},
+        {"count": 50, "type": "pagination_stress", "status": "open"},
+        {"count": 5, "type": "unicode_content", "status": "open"},
+        {"count": 3, "type": "edge_case_labels", "status": "open"},
+        {"count": 4, "type": "mixed_status", "status": "various"},
+        {"count": 6, "type": "author_variations", "status": "open"}
     ]
     
     issue_id = 1000
@@ -125,16 +130,100 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
                 body = "This is a recent issue to test recent sorting."
                 age_days = i
             
+            elif scenario["type"] == "pagination_stress":
+                if i % 4 == 0:
+                    labels = ["performance", "stress-test"]
+                elif i % 4 == 1:
+                    labels = ["bug", "pagination"]
+                elif i % 4 == 2:
+                    labels = ["feature", "ui", "infinite-scroll"]
+                else:
+                    labels = ["enhancement", "dashboard"]
+                title = f"Pagination Stress Test Issue #{issue_id - 999}"
+                body = f"This is stress test issue #{i + 1} of 50 to test pagination performance and infinite scroll behavior."
+                age_days = i % 30
+            
+            elif scenario["type"] == "unicode_content":
+                labels = ["i18n", "unicode", "testing", "🚀"]
+                unicode_titles = [
+                    f"Unicode Test: 中文标题 #{issue_id - 999}",
+                    f"Emoji Test: 🐛🔥💡 Issue #{issue_id - 999}",
+                    f"Special Chars: àáâãäåæçèéêë #{issue_id - 999}",
+                    f"Math Symbols: ∑∏∆∇∂∫ #{issue_id - 999}",
+                    f"Mixed: Тест 测试 テスト 🌟 #{issue_id - 999}"
+                ]
+                title = unicode_titles[i % len(unicode_titles)]
+                body = ("Unicode content test: 这是一个包含中文的问题描述。\n\n"
+                       "Emoji test: 🎯 This issue contains various emojis 🚀🔥💡\n\n"
+                       "Special characters: àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ\n\n"
+                       "Math symbols: ∑∏∆∇∂∫√∞≠≤≥±×÷")
+                age_days = i * 7
+            
+            elif scenario["type"] == "edge_case_labels":
+                edge_labels = [
+                    ["very-very-very-long-label-name-that-tests-ui-overflow-handling"],
+                    ["UPPERCASE", "lowercase", "MiXeD-CaSe"],
+                    ["special!@#$%^&*()chars", "with spaces", "with-dashes", "with_underscores"]
+                ]
+                labels = edge_labels[i % len(edge_labels)]
+                title = f"Edge Case Labels Test #{issue_id - 999}"
+                body = "This issue tests how the dashboard handles edge case label formats."
+                age_days = i * 5
+            
+            elif scenario["type"] == "mixed_status":
+                statuses = ["open", "closed", "open", "closed"]
+                status = statuses[i % len(statuses)]
+                if status == "open":
+                    labels = ["in-progress", "needs-review"]
+                else:
+                    labels = ["resolved", "completed"]
+                title = f"Mixed Status Issue #{issue_id - 999}"
+                body = f"This issue tests status filtering with status: {status}"
+                age_days = i * 10
+                scenario["status"] = status
+            
+            elif scenario["type"] == "author_variations":
+                authors = [
+                    "user-with-dashes",
+                    "UserWithCamelCase",
+                    "user_with_underscores",
+                    "user123numbers",
+                    "a",
+                    "very-long-username-that-might-cause-ui-issues"
+                ]
+                author_override = authors[i % len(authors)]
+                labels = ["author-test", "ui-test"]
+                title = f"Author Variation Test #{issue_id - 999}"
+                body = f"This issue tests different GitHub username formats: {author_override}"
+                age_days = i * 3
+            
+            author = f"user{(issue_id % 5) + 1}"
+            if scenario["type"] == "author_variations":
+                authors = [
+                    "user-with-dashes",
+                    "UserWithCamelCase", 
+                    "user_with_underscores",
+                    "user123numbers",
+                    "a",
+                    "very-long-username-that-might-cause-ui-issues"
+                ]
+                author = authors[i % len(authors)]
+            
+            issue_status = scenario["status"]
+            if scenario["type"] == "mixed_status":
+                statuses = ["open", "closed", "open", "closed"]
+                issue_status = statuses[i % len(statuses)]
+            
             test_issues.append({
                 "id": issue_id,
                 "title": title,
                 "body": body,
                 "labels": labels,
                 "number": issue_id - 999,
-                "author": f"user{(issue_id % 5) + 1}",
+                "author": author,
                 "created_at": datetime.now() - timedelta(days=age_days),
                 "age_days": age_days,
-                "status": scenario["status"],
+                "status": issue_status,
             })
             issue_id += 1
 
@@ -1347,6 +1436,112 @@ async def cancel_session(session_id: str):
     sessions_store[session_id]["last_accessed"] = datetime.now(timezone.utc)
 
     return {"message": "Session cancelled successfully"}
+
+
+@app.get("/api/test/dashboard-scenarios")
+async def get_dashboard_scenarios():
+    """Get information about available test scenarios for dashboard testing"""
+    if not os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
+        raise HTTPException(status_code=404, detail="Test data not loaded")
+    
+    test_repo_id = "testuser/test-repo"
+    if test_repo_id not in issues_store:
+        raise HTTPException(status_code=404, detail="Test repository not found")
+    
+    scenarios_info = {
+        "standard": {"count": 10, "description": "Mixed labels and content for general testing"},
+        "long_content": {"count": 3, "description": "Tests UI overflow and responsive design"},
+        "no_labels": {"count": 2, "description": "Tests empty label state handling"},
+        "many_labels": {"count": 2, "description": "Tests label overflow and tooltip functionality"},
+        "closed": {"count": 3, "description": "Tests status filtering capabilities"},
+        "old_issues": {"count": 2, "description": "Tests age-based sorting (1+ years old)"},
+        "recent_issues": {"count": 3, "description": "Tests recent issue prioritization"},
+        "pagination_stress": {"count": 50, "description": "Tests pagination performance and infinite scroll"},
+        "unicode_content": {"count": 5, "description": "Tests unicode, emoji, and special character handling"},
+        "edge_case_labels": {"count": 3, "description": "Tests edge case label formats and lengths"},
+        "mixed_status": {"count": 4, "description": "Tests various issue status combinations"},
+        "author_variations": {"count": 6, "description": "Tests different GitHub username formats"}
+    }
+    
+    total_issues = len(issues_store[test_repo_id])
+    
+    return {
+        "scenarios": scenarios_info,
+        "total_issues": total_issues,
+        "test_repo_id": test_repo_id,
+        "test_data_active": True
+    }
+
+
+@app.post("/api/test/reset-data")
+async def reset_test_data():
+    """Reset test data to clean state for testing"""
+    if not os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
+        raise HTTPException(status_code=404, detail="Test data not available")
+    
+    test_repo_id = "testuser/test-repo"
+    
+    if test_repo_id in issues_store:
+        del issues_store[test_repo_id]
+    if test_repo_id in repos_store:
+        del repos_store[test_repo_id]
+    
+    repos_store[test_repo_id] = {
+        "id": test_repo_id,
+        "owner": "testuser",
+        "name": "test-repo",
+        "url": "https://github.com/testuser/test-repo",
+        "connectedAt": datetime.now(),
+        "openIssuesCount": 25,
+        "githubPat": "test_token",
+    }
+    
+    return {
+        "message": "Test data reset successfully",
+        "test_repo_id": test_repo_id,
+        "timestamp": datetime.now().isoformat()
+    }
+
+
+@app.get("/api/test/performance-data")
+async def get_performance_data():
+    """Get performance metrics for dashboard testing"""
+    if not os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
+        raise HTTPException(status_code=404, detail="Test data not loaded")
+    
+    test_repo_id = "testuser/test-repo"
+    if test_repo_id not in issues_store:
+        raise HTTPException(status_code=404, detail="Test repository not found")
+    
+    issues = issues_store[test_repo_id]
+    
+    label_counts = {}
+    author_counts = {}
+    status_counts = {}
+    
+    for issue in issues:
+        for label in issue["labels"]:
+            label_counts[label] = label_counts.get(label, 0) + 1
+        
+        author = issue["author"]
+        author_counts[author] = author_counts.get(author, 0) + 1
+        
+        status = issue["status"]
+        status_counts[status] = status_counts.get(status, 0) + 1
+    
+    return {
+        "total_issues": len(issues),
+        "unique_labels": len(label_counts),
+        "unique_authors": len(author_counts),
+        "label_distribution": label_counts,
+        "author_distribution": author_counts,
+        "status_distribution": status_counts,
+        "age_range": {
+            "min_days": min(issue["age_days"] for issue in issues),
+            "max_days": max(issue["age_days"] for issue in issues),
+            "avg_days": sum(issue["age_days"] for issue in issues) / len(issues)
+        }
+    }
 
 
 def extract_structured_output_from_messages(messages: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
