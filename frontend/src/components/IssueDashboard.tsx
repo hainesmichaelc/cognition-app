@@ -56,15 +56,6 @@ export default function IssueDashboard() {
     }
   }, [owner, name, selectedLabel, sortBy, sortOrder])
 
-  useEffect(() => {
-    if (!owner || !name || !searchQuery) return
-    
-    const timeoutId = setTimeout(() => {
-      fetchIssues(false, searchQuery, selectedLabel, sortBy, sortOrder)
-    }, 1000)
-    
-    return () => clearTimeout(timeoutId)
-  }, [searchQuery, selectedLabel, sortBy, sortOrder])
 
   const fetchIssues = useCallback(async (loadMore = false, customSearchQuery = searchQuery, customSelectedLabel = selectedLabel, customSortBy = sortBy, customSortOrder = sortOrder) => {
     if (!owner || !name) return
@@ -134,19 +125,6 @@ export default function IssueDashboard() {
       console.error('Failed to fetch repository data:', error)
     }
   }, [owner, name])
-
-  useEffect(() => {
-    if (owner && name) {
-      fetchIssues()
-      fetchRepoData()
-    }
-  }, [owner, name])
-
-  useEffect(() => {
-    if (owner && name) {
-      fetchIssues(false, searchQuery, selectedLabel, sortBy, sortOrder)
-    }
-  }, [searchQuery, selectedLabel, sortBy, sortOrder])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
