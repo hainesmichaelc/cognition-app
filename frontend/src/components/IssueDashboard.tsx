@@ -49,6 +49,23 @@ export default function IssueDashboard() {
   const [sortOrder, setSortOrder] = useState('asc')
   const pageSize = 100
 
+  useEffect(() => {
+    if (owner && name) {
+      fetchIssues()
+      fetchRepoData()
+    }
+  }, [owner, name, selectedLabel, sortBy, sortOrder])
+
+  useEffect(() => {
+    if (!owner || !name || !searchQuery) return
+    
+    const timeoutId = setTimeout(() => {
+      fetchIssues(false, searchQuery, selectedLabel, sortBy, sortOrder)
+    }, 1000)
+    
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery, selectedLabel, sortBy, sortOrder])
+
   const fetchIssues = useCallback(async (loadMore = false, customSearchQuery = searchQuery, customSelectedLabel = selectedLabel, customSortBy = sortBy, customSortOrder = sortOrder) => {
     if (!owner || !name) return
     
