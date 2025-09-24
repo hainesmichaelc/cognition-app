@@ -387,7 +387,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Issue #{issue.number}: {issue.title}
@@ -423,8 +423,8 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
 
           <div>
             <h4 className="font-semibold mb-2">Description</h4>
-            <div className="bg-gray-50 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
-              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md">
+            <div className="bg-gray-50 p-4 rounded-md overflow-y-auto border" style={{maxHeight: '60vh'}}>
+              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md break-words">
                 <ReactMarkdown 
                   remarkPlugins={[remarkGfm]}
                   components={{
@@ -440,13 +440,13 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                       />
                     ),
                     a: (props) => (
-                      <a {...props} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer" />
+                      <a {...props} className="text-blue-600 hover:text-blue-800 underline break-all" target="_blank" rel="noopener noreferrer" />
                     ),
                     code: (props) => {
                       const {className} = props;
                       const isInline = !className || !className.includes('language-');
                       return isInline ? 
-                        <code {...props} className="bg-gray-200 px-1 py-0.5 rounded text-sm" /> :
+                        <code {...props} className="bg-gray-200 px-1 py-0.5 rounded text-sm break-all" /> :
                         <code {...props} className="block bg-gray-200 p-2 rounded text-sm overflow-x-auto" />
                     }
                   }}

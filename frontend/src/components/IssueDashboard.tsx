@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ArrowLeft, Search, RefreshCw, X, ExternalLink, Loader2, CheckCircle, AlertCircle, Clock, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useSessionManager } from '@/hooks/useSessionManager'
+import { useIsMobile } from '@/hooks/use-mobile'
 import IssueDetailModal from './IssueDetailModal'
 import { SearchFilterWarning } from './SearchFilterWarning'
 
@@ -32,6 +33,7 @@ export default function IssueDashboard() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const { activeSessions, sessionDetails } = useSessionManager()
+  const isMobile = useIsMobile()
   
   const [issues, setIssues] = useState<Issue[]>([])
   const [loading, setLoading] = useState(true)
@@ -397,9 +399,9 @@ export default function IssueDashboard() {
                   <TableHead>Session Status</TableHead>
                   <TableHead>Issue Status</TableHead>
                   <TableHead>Summary</TableHead>
-                  <TableHead>Labels</TableHead>
-                  <TableHead>Issue ID</TableHead>
-                  <TableHead>Author</TableHead>
+                  {!isMobile && <TableHead>Labels</TableHead>}
+                  {!isMobile && <TableHead>Issue ID</TableHead>}
+                  {!isMobile && <TableHead>Author</TableHead>}
                   <TableHead>Age</TableHead>
                 </TableRow>
               </TableHeader>
@@ -451,54 +453,84 @@ export default function IssueDashboard() {
                         )}
                       </TableCell>
                     <TableCell>
-                      <button
-                        className="text-left hover:underline font-medium"
-                        onClick={() => openIssueDetail(issue)}
-                      >
-                        {issue.title}
-                      </button>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 flex-wrap">
-                        {issue.labels.slice(0, 3).map((label) => (
-                          <Badge key={label} variant="outline" className="text-xs">
-                            {label}
-                          </Badge>
-                        ))}
-                        {issue.labels.length > 3 && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge variant="outline" className="text-xs cursor-help">
-                                +{issue.labels.length - 3}
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="max-w-xs">
-                                <p className="font-semibold mb-1">Additional labels:</p>
-                                <div className="flex flex-wrap gap-1">
-                                  {issue.labels.slice(3).map((label) => (
-                                    <Badge key={label} variant="outline" className="text-xs">
-                                      {label}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
+                      <div className="space-y-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              className="text-left hover:underline font-medium truncate max-w-xs lg:max-w-md xl:max-w-lg block"
+                              onClick={() => openIssueDetail(issue)}
+                            >
+                              {issue.title}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="max-w-sm">
+                              <p className="text-sm">{issue.title}</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                        {isMobile && (
+                          <div className="text-xs text-muted-foreground space-y-1">
+                            <div>#{issue.number} • {issue.author}</div>
+                            <div className="flex gap-1 flex-wrap">
+                              {issue.labels.slice(0, 2).map((label) => (
+                                <Badge key={label} variant="outline" className="text-xs">
+                                  {label}
+                                </Badge>
+                              ))}
+                              {issue.labels.length > 2 && (
+                                <span className="text-xs">+{issue.labels.length - 2}</span>
+                              )}
+                            </div>
+                          </div>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>#{issue.number}</TableCell>
-                    <TableCell>
-                      <a
-                        href={`https://github.com/${issue.author}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {issue.author}
-                      </a>
-                    </TableCell>
+                    {!isMobile && (
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
+                          {issue.labels.slice(0, 3).map((label) => (
+                            <Badge key={label} variant="outline" className="text-xs">
+                              {label}
+                            </Badge>
+                          ))}
+                          {issue.labels.length > 3 && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="outline" className="text-xs cursor-help">
+                                  +{issue.labels.length - 3}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs">
+                                  <p className="font-semibold mb-1">Additional labels:</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {issue.labels.slice(3).map((label) => (
+                                      <Badge key={label} variant="outline" className="text-xs">
+                                        {label}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                    {!isMobile && <TableCell>#{issue.number}</TableCell>}
+                    {!isMobile && (
+                      <TableCell>
+                        <a
+                          href={`https://github.com/${issue.author}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          {issue.author}
+                        </a>
+                      </TableCell>
+                    )}
                       <TableCell>{issue.age_days} days</TableCell>
                     </TableRow>
                   )
