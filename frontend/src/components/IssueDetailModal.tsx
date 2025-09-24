@@ -115,7 +115,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     if (session?.structured_output?.branch_suggestion && !branchName) {
       setBranchName(session.structured_output.branch_suggestion)
     }
-  }, [session?.structured_output?.branch_suggestion, branchName])
+  }, [session?.structured_output?.branch_suggestion])
 
   useEffect(() => {
     if (isOpen && issue) {
