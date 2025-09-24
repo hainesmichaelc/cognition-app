@@ -43,6 +43,21 @@ interface DevinSession {
     branch_suggestion: string
     pr_url: string
     status?: string
+    response?: {
+      status: string
+      summary: string
+      confidence: 'low' | 'medium' | 'high'
+      progress_pct: number
+      risks: string[]
+      dependencies: string[]
+      action_plan: Array<{
+        step: number
+        desc: string
+        done: boolean
+      }>
+      branch_suggestion: string
+      pr_url?: string
+    }
   }
   url: string
 }
@@ -58,7 +73,9 @@ interface IssueDetailModalProps {
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const isSessionCompleted = (session: DevinSession | null) => {
-  return session?.status === 'completed' || session?.structured_output?.status === 'completed'
+  return session?.status === 'completed' || 
+         session?.structured_output?.status === 'completed' ||
+         session?.structured_output?.response?.status === 'completed'
 }
 
 export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate, repoData }: IssueDetailModalProps) {
@@ -111,8 +128,9 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
       const sessionData = sessionDetails[sessionId]
       setSession(sessionData)
       
-      if (sessionData.status === 'completed' && sessionData.structured_output?.pr_url && issue) {
-        onIssueUpdate?.(issue.id, 'PR Submitted', sessionData.structured_output.pr_url)
+      const prUrl = sessionData.structured_output?.pr_url || sessionData.structured_output?.response?.pr_url
+      if ((sessionData.status === 'completed' || sessionData.structured_output?.response?.status === 'completed') && prUrl && issue) {
+        onIssueUpdate?.(issue.id, 'PR Submitted', prUrl)
       }
     }
   }, [sessionId, sessionDetails, issue, onIssueUpdate])
@@ -551,11 +569,11 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                       </span>
                     </>
                   )}
-                  {session.structured_output?.pr_url && (
+                  {(session.structured_output?.pr_url || session.structured_output?.response?.pr_url) && (
                     <>
                       {' • '}
                       <a
-                        href={session.structured_output.pr_url}
+                        href={session.structured_output?.pr_url || session.structured_output?.response?.pr_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
@@ -688,7 +706,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                       </div>
                     )}
 
-                    {session.status === 'completed' && !isPlanApproved && !session.structured_output?.pr_url && session.structured_output?.confidence !== 'high' && (
+                    {(session.status === 'completed' || session.structured_output?.response?.status === 'completed') && !isPlanApproved && !(session.structured_output?.pr_url || session.structured_output?.response?.pr_url) && (session.structured_output?.confidence || session.structured_output?.response?.confidence) !== 'high' && (
                       <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <CheckCircle className="h-5 w-5 text-blue-600" />
@@ -725,7 +743,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                       </div>
                     )}
 
-                    {isPlanApproved && !session.structured_output?.pr_url && (
+                    {isPlanApproved && !(session.structured_output?.pr_url || session.structured_output?.response?.pr_url) && (
                       <div className="bg-green-50 border border-green-200 rounded-md p-3">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
@@ -734,7 +752,8 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                       </div>
                     )}
 
-                    {session.structured_output.pr_url && (
+
+                    {(session.structured_output?.pr_url || session.structured_output?.response?.pr_url) && (
                       <div className="bg-green-50 border border-green-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <CheckCircle className="h-5 w-5 text-green-600" />
@@ -744,7 +763,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                           Your pull request has been created successfully.
                         </p>
                         <a
-                          href={session.structured_output.pr_url}
+                          href={session.structured_output?.pr_url || session.structured_output?.response?.pr_url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
@@ -752,24 +771,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                           <ExternalLink className="h-4 w-4" />
                           View Pull Request
                         </a>
-                      </div>
-                    )}
-
-                    {session.structured_output?.pr_url && (
-                      <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm font-medium text-green-800">Pull Request Created</span>
-                          <a
-                            href={session.structured_output.pr_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            View PR
-                          </a>
-                        </div>
                       </div>
                     )}
                   </>
@@ -817,7 +818,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                   </Button>
                 </div>
 
-                    {isPlanApproved && !session.structured_output?.pr_url && (
+                    {isPlanApproved && !(session.structured_output?.pr_url || session.structured_output?.response?.pr_url) && (
                       <div className="border-t pt-4">
                         <h5 className="font-semibold mb-2">Execute Plan</h5>
                         <div className="grid grid-cols-2 gap-4 mb-4">
