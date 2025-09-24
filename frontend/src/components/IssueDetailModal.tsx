@@ -92,7 +92,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     } catch (error) {
       console.error('Failed to check for existing session:', error)
     }
-  }, [issue, getIssueSession, fetchSessionDetails])
+  }, [issue])
 
   useEffect(() => {
     if (session?.structured_output?.branch_suggestion && !branchName) {
