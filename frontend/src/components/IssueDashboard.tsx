@@ -99,7 +99,7 @@ export default function IssueDashboard() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [owner, name, pageSize, searchQuery, selectedLabel, sortBy, sortOrder, toast])
+  }, [owner, name, pageSize, searchQuery, selectedLabel, sortBy, sortOrder])
 
   const fetchRepoData = useCallback(async () => {
     if (!owner || !name) return
