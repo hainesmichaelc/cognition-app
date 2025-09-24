@@ -128,7 +128,7 @@ export default function IssueDashboard() {
       fetchIssues()
       fetchRepoData()
     }
-  }, [owner, name])
+  }, [owner, name, fetchRepoData])
 
   useEffect(() => {
     if (owner && name) {
@@ -157,7 +157,7 @@ export default function IssueDashboard() {
         observer.unobserve(sentinel)
       }
     }
-  }, [loadingMore, hasMoreFromGithub, allIssuesLoaded])
+  }, [loadingMore, hasMoreFromGithub, allIssuesLoaded, fetchIssues])
 
   const resyncRepo = async () => {
     if (!owner || !name) return
