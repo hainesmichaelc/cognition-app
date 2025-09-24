@@ -192,7 +192,7 @@ export function useSessionManager() {
     const cleanup = startPolling()
     
     return cleanup
-  }, [startPolling])
+  }, [])
 
   return {
     activeSessions,
