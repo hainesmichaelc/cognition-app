@@ -112,7 +112,7 @@ export default function IssueDashboard() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [owner, name, pageSize, toast])
+  }, [owner, name, pageSize])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
