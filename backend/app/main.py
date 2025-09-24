@@ -411,14 +411,23 @@ class DevinAPIService:
 devin_api = DevinAPIService()
 
 
-async def fetch_all_github_issues(
-    client: httpx.AsyncClient, headers: dict, owner: str, name: str
-) -> List[dict]:
-    """Fetch all open issues from GitHub API using pagination"""
+async def fetch_github_issues_batch(
+    client: httpx.AsyncClient, headers: dict, owner: str, name: str,
+    start_page: int = 1, max_pages: Optional[int] = None
+) -> tuple[List[dict], dict]:
+    """Fetch issues from GitHub API with pagination control
+    
+    Returns:
+        tuple: (issues_list, pagination_metadata)
+        pagination_metadata contains: has_more, total_fetched, last_page
+    """
     all_issues = []
-    page = 1
+    page = start_page
+    pages_fetched = 0
 
     while True:
+        if max_pages and pages_fetched >= max_pages:
+            break
         response = await client.get(
             f"https://api.github.com/repos/{owner}/{name}/issues",
             headers=headers,
@@ -443,13 +452,31 @@ async def fetch_all_github_issues(
             break
 
         all_issues.extend(issues_data)
+        pages_fetched += 1
 
         if len(issues_data) < 100:
             break
 
         page += 1
 
-    return all_issues
+    has_more = (len(issues_data) == 100 and 
+                (not max_pages or pages_fetched < max_pages))
+    
+    pagination_metadata = {
+        "has_more": has_more,
+        "total_fetched": len(all_issues),
+        "last_page": page - 1
+    }
+
+    return all_issues, pagination_metadata
+
+
+async def fetch_all_github_issues(
+    client: httpx.AsyncClient, headers: dict, owner: str, name: str
+) -> List[dict]:
+    """Fetch all open issues from GitHub API using pagination (legacy function)"""
+    issues, _ = await fetch_github_issues_batch(client, headers, owner, name)
+    return issues
 
 
 async def create_github_pr(
@@ -578,8 +605,8 @@ async def connect_repo(request: ConnectRepoRequest):
                            "Push access is required to open pull requests.",
                 )
 
-            issues_data = await fetch_all_github_issues(
-                client, headers, owner, name
+            issues_data, pagination_meta = await fetch_github_issues_batch(
+                client, headers, owner, name, start_page=1, max_pages=1
             )
 
             processed_issues = []
@@ -614,6 +641,10 @@ async def connect_repo(request: ConnectRepoRequest):
                 "name": name,
                 "url": url_str,
                 "connectedAt": datetime.now(),
+                "github_issues_fetched_count": len(processed_issues),
+                "github_total_issues_estimate": len(processed_issues),
+                "github_has_more_pages": pagination_meta["has_more"],
+                "github_last_page": pagination_meta["last_page"],
                 "openIssuesCount": len(processed_issues),
                 "githubPat": request.githubPat,  # Store PAT for future
                 # API calls
@@ -694,8 +725,8 @@ async def resync_repo(owner: str, name: str, request: ResyncRequest):
                 "User-Agent": "Cognition-App/1.0",
             }
 
-            issues_data = await fetch_all_github_issues(
-                client, headers, owner, name
+            issues_data, pagination_meta = await fetch_github_issues_batch(
+                client, headers, owner, name, start_page=1, max_pages=1
             )
 
             processed_issues = []
@@ -726,6 +757,9 @@ async def resync_repo(owner: str, name: str, request: ResyncRequest):
 
             issues_store[repo_id] = processed_issues
             repos_store[repo_id]["openIssuesCount"] = len(processed_issues)
+            repos_store[repo_id]["github_issues_fetched_count"] = len(processed_issues)
+            repos_store[repo_id]["github_has_more_pages"] = pagination_meta["has_more"]
+            repos_store[repo_id]["github_last_page"] = pagination_meta["last_page"]
 
             return {
                 "message": "Repository resynced successfully",
@@ -749,21 +783,74 @@ async def resync_repo(owner: str, name: str, request: ResyncRequest):
         )
 
 
-@app.get("/api/repos/{owner}/{name}/issues",
-         response_model=List[IssueResponse])
+@app.get("/api/repos/{owner}/{name}/issues")
 async def get_issues(
     owner: str,
     name: str,
     q: Optional[str] = None,
     label: Optional[str] = None,
     page: int = 1,
-    pageSize: int = 20,
+    pageSize: int = 100,
     sort_by: Optional[str] = "created_at",
     sort_order: Optional[str] = "desc",
+    load_more: bool = False,
 ):
     repo_id = f"{unquote(owner)}/{unquote(name)}"
     if repo_id not in issues_store:
         raise HTTPException(status_code=404, detail="Repository not found")
+    
+    if repo_id not in repos_store:
+        raise HTTPException(status_code=404, detail="Repository metadata not found")
+
+    repo_metadata = repos_store[repo_id]
+    
+    if load_more and repo_metadata.get("github_has_more_pages", False):
+        try:
+            async with httpx.AsyncClient() as client:
+                headers = {
+                    "Authorization": f"token {repo_metadata['githubPat']}",
+                    "Accept": "application/vnd.github.v3+json",
+                    "User-Agent": "Cognition-App/1.0",
+                }
+                
+                next_page = repo_metadata.get("github_last_page", 1) + 1
+                new_issues, pagination_meta = await fetch_github_issues_batch(
+                    client, headers, owner, name, start_page=next_page, max_pages=1
+                )
+                
+                processed_new_issues = []
+                for issue in new_issues:
+                    if "pull_request" not in issue:  # Skip PRs
+                        age_days = (
+                            datetime.now(timezone.utc)
+                            - datetime.fromisoformat(
+                                issue["created_at"].replace("Z", "+00:00")
+                            )
+                        ).days
+                        processed_new_issues.append(
+                            {
+                                "id": issue["id"],
+                                "title": issue["title"],
+                                "body": issue["body"] or "",
+                                "labels": [label["name"] for label in issue["labels"]],
+                                "number": issue["number"],
+                                "author": issue["user"]["login"],
+                                "created_at": datetime.fromisoformat(
+                                    issue["created_at"].replace("Z", "+00:00")
+                                ),
+                                "age_days": age_days,
+                                "status": "open",
+                            }
+                        )
+                
+                issues_store[repo_id].extend(processed_new_issues)
+                repos_store[repo_id]["github_issues_fetched_count"] += len(processed_new_issues)
+                repos_store[repo_id]["github_has_more_pages"] = pagination_meta["has_more"]
+                repos_store[repo_id]["github_last_page"] = pagination_meta["last_page"]
+                repos_store[repo_id]["openIssuesCount"] = len(issues_store[repo_id])
+                
+        except Exception as e:
+            print(f"Error fetching more issues: {e}")
 
     issues = issues_store[repo_id]
 
@@ -791,21 +878,29 @@ async def get_issues(
 
     start = (page - 1) * pageSize
     end = start + pageSize
+    paginated_issues = issues[start:end]
 
-    return [
-        IssueResponse(
-            id=issue["id"],
-            title=issue["title"],
-            body=issue["body"],
-            labels=issue["labels"],  # Return all labels for tooltip
-            number=issue["number"],
-            author=issue["author"],
-            created_at=issue["created_at"],
-            age_days=issue["age_days"],
-            status=issue["status"],
-        )
-        for issue in issues[start:end]
-    ]
+    response_data = {
+        "issues": [
+            IssueResponse(
+                id=issue["id"],
+                title=issue["title"],
+                body=issue["body"],
+                labels=issue["labels"],
+                number=issue["number"],
+                author=issue["author"],
+                created_at=issue["created_at"],
+                age_days=issue["age_days"],
+                status=issue["status"],
+            )
+            for issue in paginated_issues
+        ],
+        "has_more_from_github": repo_metadata.get("github_has_more_pages", False),
+        "total_fetched_from_github": repo_metadata.get("github_issues_fetched_count", 0),
+        "total_available_estimate": len(issues)
+    }
+    
+    return response_data
 
 
 @app.post("/api/issues/{issue_id}/scope")
