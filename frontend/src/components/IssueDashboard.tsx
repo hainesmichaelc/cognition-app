@@ -49,20 +49,7 @@ export default function IssueDashboard() {
   const [sortOrder, setSortOrder] = useState('asc')
   const pageSize = 100
 
-  useEffect(() => {
-    if (owner && name) {
-      fetchIssues()
-      fetchRepoData()
-    }
-  }, [owner, name])
-
-  useEffect(() => {
-    if (owner && name) {
-      fetchIssues()
-    }
-  }, [searchQuery, selectedLabel, sortBy, sortOrder])
-
-  const fetchIssues = useCallback(async (loadMore = false) => {
+  const fetchIssues = useCallback(async (loadMore = false, customSearchQuery = searchQuery, customSelectedLabel = selectedLabel, customSortBy = sortBy, customSortOrder = sortOrder) => {
     if (!owner || !name) return
     
     try {
@@ -74,12 +61,12 @@ export default function IssueDashboard() {
       }
       
       const params = new URLSearchParams()
-      if (searchQuery) params.append('q', searchQuery)
-      if (selectedLabel) params.append('label', selectedLabel)
+      if (customSearchQuery) params.append('q', customSearchQuery)
+      if (customSelectedLabel) params.append('label', customSelectedLabel)
       params.append('page', '1')
       params.append('pageSize', pageSize.toString())
-      params.append('sort_by', sortBy)
-      params.append('sort_order', sortOrder)
+      params.append('sort_by', customSortBy)
+      params.append('sort_order', customSortOrder)
       if (loadMore) params.append('load_more', 'true')
       
       const response = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${params}`)
@@ -114,6 +101,36 @@ export default function IssueDashboard() {
     }
   }, [owner, name, pageSize])
 
+  const fetchRepoData = useCallback(async () => {
+    if (!owner || !name) return
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/repos`)
+      if (response.ok) {
+        const repos = await response.json()
+        const repo = repos.find((r: {id: string, owner: string, name: string, url: string}) => r.id === `${owner}/${name}`)
+        if (repo) {
+          setRepoData({ owner: repo.owner, name: repo.name, url: repo.url })
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch repository data:', error)
+    }
+  }, [owner, name])
+
+  useEffect(() => {
+    if (owner && name) {
+      fetchIssues()
+      fetchRepoData()
+    }
+  }, [owner, name])
+
+  useEffect(() => {
+    if (owner && name) {
+      fetchIssues(false, searchQuery, selectedLabel, sortBy, sortOrder)
+    }
+  }, [searchQuery, selectedLabel, sortBy, sortOrder])
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -136,23 +153,6 @@ export default function IssueDashboard() {
       }
     }
   }, [loadingMore, hasMoreFromGithub, allIssuesLoaded])
-
-  const fetchRepoData = useCallback(async () => {
-    if (!owner || !name) return
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/repos`)
-      if (response.ok) {
-        const repos = await response.json()
-        const repo = repos.find((r: {id: string, owner: string, name: string, url: string}) => r.id === `${owner}/${name}`)
-        if (repo) {
-          setRepoData({ owner: repo.owner, name: repo.name, url: repo.url })
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch repository data:', error)
-    }
-  }, [owner, name])
 
   const resyncRepo = async () => {
     if (!owner || !name) return
