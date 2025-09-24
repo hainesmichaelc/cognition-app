@@ -64,9 +64,9 @@ export default function IssueDashboard() {
     }, 1000)
     
     return () => clearTimeout(timeoutId)
-  }, [searchQuery, selectedLabel, sortBy, sortOrder])
+  }, [searchQuery])
 
-  const fetchIssues = useCallback(async (loadMore = false, customSearchQuery = searchQuery, customSelectedLabel = selectedLabel, customSortBy = sortBy, customSortOrder = sortOrder) => {
+  const fetchIssues = useCallback(async (loadMore = false, customSearchQuery?: string, customSelectedLabel?: string, customSortBy?: string, customSortOrder?: string) => {
     if (!owner || !name) return
     
     try {
@@ -78,12 +78,12 @@ export default function IssueDashboard() {
       }
       
       const params = new URLSearchParams()
-      if (customSearchQuery) params.append('q', customSearchQuery)
-      if (customSelectedLabel) params.append('label', customSelectedLabel)
+      if (customSearchQuery ?? searchQuery) params.append('q', customSearchQuery ?? searchQuery)
+      if (customSelectedLabel ?? selectedLabel) params.append('label', customSelectedLabel ?? selectedLabel)
       params.append('page', '1')
       params.append('pageSize', pageSize.toString())
-      params.append('sort_by', customSortBy)
-      params.append('sort_order', customSortOrder)
+      params.append('sort_by', customSortBy ?? sortBy)
+      params.append('sort_order', customSortOrder ?? sortOrder)
       if (loadMore) params.append('load_more', 'true')
       
       const response = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${params}`)
@@ -116,7 +116,7 @@ export default function IssueDashboard() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [owner, name, pageSize])
+  }, [owner, name, pageSize, toast])
 
   const fetchRepoData = useCallback(async () => {
     if (!owner || !name) return
@@ -135,18 +135,6 @@ export default function IssueDashboard() {
     }
   }, [owner, name])
 
-  useEffect(() => {
-    if (owner && name) {
-      fetchIssues()
-      fetchRepoData()
-    }
-  }, [owner, name])
-
-  useEffect(() => {
-    if (owner && name) {
-      fetchIssues(false, searchQuery, selectedLabel, sortBy, sortOrder)
-    }
-  }, [searchQuery, selectedLabel, sortBy, sortOrder])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -169,7 +157,7 @@ export default function IssueDashboard() {
         observer.unobserve(sentinel)
       }
     }
-  }, [loadingMore, hasMoreFromGithub, allIssuesLoaded])
+  }, [loadingMore, hasMoreFromGithub, allIssuesLoaded, fetchIssues])
 
   const resyncRepo = async () => {
     if (!owner || !name) return
