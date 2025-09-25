@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
@@ -97,31 +97,29 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
   const { toast } = useToast()
   const { getIssueSession, fetchSessionDetails, sessionDetails, isPolling, fetchActiveSessions } = useSessionManager()
 
-  const checkForExistingSession = useCallback(async () => {
-    if (!issue) return
-    
-    try {
-      const existingSessionId = await getIssueSession(issue.id)
-      if (existingSessionId) {
-        setSessionId(existingSessionId)
-        await fetchSessionDetails(existingSessionId)
-      }
-    } catch (error) {
-      console.error('Failed to check for existing session:', error)
-    }
-  }, [issue, getIssueSession, fetchSessionDetails])
-
   useEffect(() => {
     if (session?.structured_output?.branch_suggestion && !branchName) {
       setBranchName(session.structured_output.branch_suggestion)
     }
-  }, [session?.structured_output?.branch_suggestion])
+  }, [session?.structured_output?.branch_suggestion, branchName])
 
   useEffect(() => {
-    if (isOpen && issue) {
-      checkForExistingSession()
+    if (!isOpen || !issue) return
+
+    const checkForExistingSession = async () => {
+      try {
+        const existingSessionId = await getIssueSession(issue.id)
+        if (existingSessionId) {
+          setSessionId(existingSessionId)
+          await fetchSessionDetails(existingSessionId)
+        }
+      } catch (error) {
+        console.error('Failed to check for existing session:', error)
+      }
     }
-  }, [isOpen, issue, checkForExistingSession])
+
+    checkForExistingSession()
+  }, [isOpen, issue?.id, getIssueSession, fetchSessionDetails])
 
   useEffect(() => {
     if (sessionId && sessionDetails[sessionId]) {

@@ -49,99 +49,101 @@ export default function IssueDashboard() {
   const [sortOrder, setSortOrder] = useState('asc')
   const pageSize = 100
 
-  const fetchIssues = useCallback(async (loadMore = false, customSearchQuery?: string, customSelectedLabel?: string, customSortBy?: string, customSortOrder?: string) => {
+  useEffect(() => {
     if (!owner || !name) return
-    
-    try {
-      if (!loadMore) {
+
+    const fetchIssues = async () => {
+      try {
         setLoading(true)
         setIssues([])
-      } else {
-        setLoadingMore(true)
-      }
-      
-      const params = new URLSearchParams()
-      const queryToUse = customSearchQuery !== undefined ? customSearchQuery : searchQuery
-      const labelToUse = customSelectedLabel !== undefined ? customSelectedLabel : selectedLabel
-      const sortByToUse = customSortBy !== undefined ? customSortBy : sortBy
-      const sortOrderToUse = customSortOrder !== undefined ? customSortOrder : sortOrder
-      
-      if (queryToUse) params.append('q', queryToUse)
-      if (labelToUse) params.append('label', labelToUse)
-      params.append('page', '1')
-      params.append('pageSize', pageSize.toString())
-      params.append('sort_by', sortByToUse)
-      params.append('sort_order', sortOrderToUse)
-      if (loadMore) params.append('load_more', 'true')
-      
-      const response = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${params}`)
-      if (response.ok) {
-        const data = await response.json()
         
-        if (loadMore) {
-          setIssues(prev => [...prev, ...data.issues])
-        } else {
+        const params = new URLSearchParams()
+        if (searchQuery) params.append('q', searchQuery)
+        if (selectedLabel) params.append('label', selectedLabel)
+        params.append('page', '1')
+        params.append('pageSize', pageSize.toString())
+        params.append('sort_by', sortBy)
+        params.append('sort_order', sortOrder)
+        
+        const response = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${params}`)
+        if (response.ok) {
+          const data = await response.json()
           setIssues(data.issues)
+          setHasMoreFromGithub(data.has_more_from_github || false)
+          setAllIssuesLoaded(!data.has_more_from_github)
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to fetch issues",
+            variant: "destructive"
+          })
         }
-        
-        setHasMoreFromGithub(data.has_more_from_github || false)
-        setAllIssuesLoaded(!data.has_more_from_github)
-      } else {
+      } catch (error) {
+        console.error('Failed to fetch issues:', error)
         toast({
           title: "Error",
-          description: "Failed to fetch issues",
+          description: "Failed to connect to backend",
           variant: "destructive"
         })
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error('Failed to fetch issues:', error)
-      toast({
-        title: "Error",
-        description: "Failed to connect to backend",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
-      setLoadingMore(false)
     }
-  }, [owner, name, pageSize, toast, searchQuery, selectedLabel, sortBy, sortOrder])
 
-  const fetchRepoData = useCallback(async () => {
-    if (!owner || !name) return
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/repos`)
-      if (response.ok) {
-        const repos = await response.json()
-        const repo = repos.find((r: {id: string, owner: string, name: string, url: string}) => r.id === `${owner}/${name}`)
-        if (repo) {
-          setRepoData({ owner: repo.owner, name: repo.name, url: repo.url })
+    const fetchRepoData = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/repos`)
+        if (response.ok) {
+          const repos = await response.json()
+          const repo = repos.find((r: {id: string, owner: string, name: string, url: string}) => r.id === `${owner}/${name}`)
+          if (repo) {
+            setRepoData({ owner: repo.owner, name: repo.name, url: repo.url })
+          }
         }
+      } catch (error) {
+        console.error('Failed to fetch repository data:', error)
       }
-    } catch (error) {
-      console.error('Failed to fetch repository data:', error)
     }
-  }, [owner, name])
+
+    fetchIssues()
+    fetchRepoData()
+  }, [owner, name, searchQuery, selectedLabel, sortBy, sortOrder, pageSize, toast])
 
   useEffect(() => {
-    if (owner && name) {
-      fetchIssues()
-      fetchRepoData()
-    }
-  }, [owner, name, fetchRepoData])
+    if (!owner || !name || !hasMoreFromGithub || allIssuesLoaded) return
 
-  useEffect(() => {
-    if (owner && name) {
-      fetchIssues(false, searchQuery, selectedLabel, sortBy, sortOrder)
-    }
-  }, [selectedLabel, sortBy, sortOrder, owner, name, searchQuery])
-
-  useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         const target = entries[0]
-        if (target.isIntersecting && !loadingMore && hasMoreFromGithub && !allIssuesLoaded) {
-          fetchIssues(true)
+        if (target.isIntersecting && !loadingMore) {
+          const loadMoreIssues = async () => {
+            try {
+              setLoadingMore(true)
+              
+              const params = new URLSearchParams()
+              if (searchQuery) params.append('q', searchQuery)
+              if (selectedLabel) params.append('label', selectedLabel)
+              params.append('page', '1')
+              params.append('pageSize', pageSize.toString())
+              params.append('sort_by', sortBy)
+              params.append('sort_order', sortOrder)
+              params.append('load_more', 'true')
+              
+              const response = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${params}`)
+              if (response.ok) {
+                const data = await response.json()
+                setIssues(prev => [...prev, ...data.issues])
+                setHasMoreFromGithub(data.has_more_from_github || false)
+                setAllIssuesLoaded(!data.has_more_from_github)
+              }
+            } catch (error) {
+              console.error('Failed to load more issues:', error)
+            } finally {
+              setLoadingMore(false)
+            }
+          }
+          
+          loadMoreIssues()
         }
       },
       { threshold: 1.0 }
@@ -157,7 +159,7 @@ export default function IssueDashboard() {
         observer.unobserve(sentinel)
       }
     }
-  }, [loadingMore, hasMoreFromGithub, allIssuesLoaded, fetchIssues])
+  }, [owner, name, searchQuery, selectedLabel, sortBy, sortOrder, pageSize, loadingMore, hasMoreFromGithub, allIssuesLoaded])
 
   const resyncRepo = async () => {
     if (!owner || !name) return
@@ -177,7 +179,7 @@ export default function IssueDashboard() {
           title: "Success",
           description: "Repository resynced successfully"
         })
-        await fetchIssues()
+        window.location.reload()
       } else {
         toast({
           title: "Error",
@@ -198,7 +200,9 @@ export default function IssueDashboard() {
   }
 
   const handleSearch = () => {
-    fetchIssues(false, searchQuery, selectedLabel, sortBy, sortOrder)
+    setIssues([])
+    setAllIssuesLoaded(false)
+    setHasMoreFromGithub(false)
   }
 
   const resetFilters = () => {
@@ -206,7 +210,6 @@ export default function IssueDashboard() {
     setSelectedLabel('')
     setSortBy('age_days')
     setSortOrder('asc')
-    fetchIssues(false)
   }
 
   const handleIssueUpdate = useCallback((issueId: number, status: string, prUrl?: string) => {
