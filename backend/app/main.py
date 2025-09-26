@@ -1042,7 +1042,7 @@ Status transitions:
 - Output "completed" status when you are finished with your implementation
 
 Additional Guidelines:
-- After planning completes, do NOT begin the implementation. Set status to "bolocked" \ 
+- After planning completes, do NOT begin the implementation. Set status to "blocked" \ 
 and set progress to 100%
 - Do NOT make code changes, create branches, or open PRs during the planning phase
 - Focus on thorough analysis and detailed planning to give confidence in your strategy
