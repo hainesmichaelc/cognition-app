@@ -155,6 +155,47 @@ function test() {
                 body = "This is a recent issue to test recent sorting."
                 age_days = i
             
+            elif scenario["type"] == "pagination_stress":
+                labels = ["pagination", "stress-test", "ui"]
+                title = f"Pagination Stress Test Issue #{issue_id - 999}"
+                body = ("This issue tests pagination boundaries and large "
+                        "dataset handling in the dashboard.")
+                age_days = i * 10
+            
+            elif scenario["type"] == "search_edge_cases":
+                special_chars = ["@", "#", "$", "%", "&", "*"]
+                char = special_chars[i % len(special_chars)]
+                labels = [f"search{char}test", "edge-case", "special-chars"]
+                title = f"Search Edge Case {char} Issue #{issue_id - 999}"
+                body = (f"This issue contains special characters {char} to "
+                        f"test search functionality edge cases.")
+                age_days = i * 5
+            
+            elif scenario["type"] == "session_workflow":
+                labels = ["workflow", "session-test", "devin-ai"]
+                title = f"Session Workflow Test Issue #{issue_id - 999}"
+                body = ("This issue is designed to test the complete Devin "
+                        "AI session workflow from scoping to execution.")
+                age_days = i * 2
+            
+            elif scenario["type"] == "unicode_content":
+                labels = ["unicode", "i18n", "encoding"]
+                title = f"Unicode Test Issue 🚀 #{issue_id - 999}"
+                body = ("This issue contains unicode characters: 中文, "
+                        "العربية, русский, 日本語, emoji 🎉🔥💯")
+                age_days = i
+            
+            elif scenario["type"] == "mixed_status":
+                labels = ["mixed", "status-test"]
+                title = f"Mixed Status Issue #{issue_id - 999}"
+                body = ("This issue tests mixed status scenarios for "
+                        "dashboard filtering.")
+                age_days = i * 7
+            
+            final_status = scenario["status"]
+            if scenario["type"] == "mixed_status":
+                final_status = "open" if i % 2 == 0 else "closed"
+            
             test_issues.append({
                 "id": issue_id,
                 "title": title,
@@ -164,7 +205,7 @@ function test() {
                 "author": f"user{(issue_id % 5) + 1}",
                 "created_at": datetime.now() - timedelta(days=age_days),
                 "age_days": age_days,
-                "status": scenario["status"],
+                "status": final_status,
             })
             issue_id += 1
 
@@ -181,6 +222,10 @@ function test() {
           f"{len([i for i in test_issues if i['status'] == 'closed'])}")
     print(f"   - Age range: {min(i['age_days'] for i in test_issues)} to "
           f"{max(i['age_days'] for i in test_issues)} days")
+    print("   - Special test scenarios: pagination_stress, "
+          "search_edge_cases, session_workflow, unicode_content, "
+          "mixed_status")
+    print(f"   - Total scenarios: {len(test_scenarios)}")
     
     repos_store[test_repo_id]["openIssuesCount"] = len([
         i for i in test_issues if i['status'] == 'open'
