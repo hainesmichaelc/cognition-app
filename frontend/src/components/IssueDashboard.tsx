@@ -31,7 +31,7 @@ export default function IssueDashboard() {
   const { owner, name } = useParams<{ owner: string; name: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { activeSessions, sessionDetails } = useSessionManager()
+  const { activeSessions, sessionDetails, issueUpdates } = useSessionManager()
   
   const [issues, setIssues] = useState<Issue[]>([])
   const [loading, setLoading] = useState(true)
@@ -43,7 +43,6 @@ export default function IssueDashboard() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMoreFromGithub, setHasMoreFromGithub] = useState(false)
   const [allIssuesLoaded, setAllIssuesLoaded] = useState(false)
-  const [issueUpdates, setIssueUpdates] = useState<Record<number, {status: string, prUrl?: string}>>({})
   const [repoData, setRepoData] = useState<{owner: string, name: string, url: string} | null>(null)
   const [sortBy, setSortBy] = useState('age_days')
   const [sortOrder, setSortOrder] = useState('asc')
@@ -204,12 +203,6 @@ export default function IssueDashboard() {
     setSortOrder('asc')
   }
 
-  const handleIssueUpdate = useCallback((issueId: number, status: string, prUrl?: string) => {
-    setIssueUpdates(prev => ({
-      ...prev,
-      [issueId]: { status, prUrl }
-    }))
-  }, [])
 
   const openIssueDetail = (issue: Issue) => {
     setSelectedIssue(issue)
@@ -562,7 +555,6 @@ export default function IssueDashboard() {
         issue={selectedIssue}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onIssueUpdate={handleIssueUpdate}
         repoData={repoData}
       />
       </div>

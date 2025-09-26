@@ -1,5 +1,25 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
+const ISSUE_UPDATES_STORAGE_KEY = 'cognition-app-issue-updates'
+
+const persistIssueUpdates = (updates: Record<number, {status: string, prUrl?: string}>) => {
+  try {
+    localStorage.setItem(ISSUE_UPDATES_STORAGE_KEY, JSON.stringify(updates))
+  } catch (error) {
+    console.warn('Failed to persist issue updates:', error)
+  }
+}
+
+const restoreIssueUpdates = (): Record<number, {status: string, prUrl?: string}> => {
+  try {
+    const stored = localStorage.getItem(ISSUE_UPDATES_STORAGE_KEY)
+    return stored ? JSON.parse(stored) : {}
+  } catch (error) {
+    console.warn('Failed to restore issue updates:', error)
+    return {}
+  }
+}
+
 interface SessionData {
   sessionId: string
   issueId: number
@@ -62,6 +82,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 export function useSessionManager() {
   const [activeSessions, setActiveSessions] = useState<SessionData[]>([])
   const [sessionDetails, setSessionDetails] = useState<Record<string, DevinSession>>({})
+  const [issueUpdates, setIssueUpdates] = useState<Record<number, {status: string, prUrl?: string}>>(() => restoreIssueUpdates())
   const [isPolling, setIsPolling] = useState(false)
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -178,6 +199,29 @@ export function useSessionManager() {
     setIsPolling(false)
   }, [])
 
+  const updateIssueStatus = useCallback((issueId: number, status: string, prUrl?: string) => {
+    setIssueUpdates(prev => ({
+      ...prev,
+      [issueId]: { status, prUrl }
+    }))
+  }, [])
+
+  useEffect(() => {
+    persistIssueUpdates(issueUpdates)
+  }, [issueUpdates])
+
+  useEffect(() => {
+    Object.entries(sessionDetails).forEach(([sessionId, sessionData]) => {
+      const session = activeSessions.find(s => s.sessionId === sessionId)
+      if (session && sessionData) {
+        const prUrl = sessionData.structured_output?.pr_url || sessionData.structured_output?.response?.pr_url
+        if ((sessionData.status === 'completed' || sessionData.structured_output?.response?.status === 'completed') && prUrl) {
+          updateIssueStatus(session.issueId, 'PR Submitted', prUrl)
+        }
+      }
+    })
+  }, [sessionDetails, activeSessions, updateIssueStatus])
+
   useEffect(() => {
     const cleanup = startPolling()
     
@@ -187,12 +231,14 @@ export function useSessionManager() {
   return {
     activeSessions,
     sessionDetails,
+    issueUpdates,
     isPolling,
     fetchActiveSessions,
     fetchSessionDetails,
     getIssueSession,
     cancelSession,
     startPolling,
-    stopPolling
+    stopPolling,
+    updateIssueStatus
   }
 }
