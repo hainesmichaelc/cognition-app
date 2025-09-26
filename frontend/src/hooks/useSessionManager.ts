@@ -133,6 +133,7 @@ export function useSessionManager() {
     return null
   }, [])
 
+
   const getIssueSession = useCallback(async (issueId: number) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/issues/${issueId}/session`)
