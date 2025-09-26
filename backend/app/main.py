@@ -53,6 +53,7 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
         {"count": 3, "type": "long_content", "status": "open"},
         {"count": 2, "type": "no_labels", "status": "open"},
         {"count": 2, "type": "many_labels", "status": "open"},
+        {"count": 2, "type": "markdown_content", "status": "open"},
         {"count": 3, "type": "closed", "status": "closed"},
         {"count": 2, "type": "old_issues", "status": "open"},
         {"count": 3, "type": "recent_issues", "status": "open"}
@@ -118,6 +119,35 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
                 title = f"Old Issue #{issue_id - 999}"
                 body = "This is an old issue to test age-based sorting."
                 age_days = 365 + i * 30
+            
+            elif scenario["type"] == "markdown_content":
+                labels = ["documentation", "markdown", "ui"]
+                title = f"Markdown Test Issue #{issue_id - 999}"
+                body = """# Markdown Test Content
+
+This issue contains various markdown elements to test rendering:
+
+- Bullet point 1
+- Bullet point 2
+  - Nested bullet point
+  - Another nested item
+- Bullet point 3
+
+1. First item
+2. Second item
+3. Third item
+
+![Test Image](https://via.placeholder.com/300x200/0066cc/ffffff?text=Test+Image)
+
+Here's some `inline code` and a code block:
+
+```javascript
+function test() {
+    console.log("Hello world");
+}
+```
+
+**Bold text** and *italic text* should also render properly."""
             
             elif scenario["type"] == "recent_issues":
                 labels = ["new", "urgent"]
