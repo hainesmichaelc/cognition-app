@@ -1122,14 +1122,14 @@ async def get_devin_session(session_id: str):
         status = session_data.get("status", "unknown")
         structured_output = session_data.get("structured_output")
         
-        if structured_output is None:
-            try:
-                await devin_api.send_message(session_id, "Update your structured output")
-            except Exception as e:
-                print(f"Warning: Failed to send structured output request to session {session_id}: {str(e)}")
-                
+        if structured_output is None:                
             messages = session_data.get("messages", [])
             structured_output = extract_structured_output_from_messages(messages)
+            if structured_output is None:
+                try:
+                    await devin_api.send_message(session_id, "Update your structured output")
+                except Exception as e:
+                    print(f"Warning: Failed to send structured output request to session {session_id}: {str(e)}")
         elif status == "running" and structured_output is None:
             messages = session_data.get("messages", [])
             extracted_output = extract_structured_output_from_messages(messages)
