@@ -449,20 +449,29 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
           <div>
             <h4 className="font-semibold mb-2">Description</h4>
             <div className="bg-gray-50 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
-              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md">
+              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md prose-ul:space-y-1 prose-ol:space-y-1 prose-li:marker:text-gray-600">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
                     img: (props) => (
                       <img
                         {...props}
-                        className="max-w-full h-auto rounded-md border border-gray-200 shadow-sm"
+                        className="max-w-full h-auto rounded-md border border-gray-200 shadow-sm my-4"
                         style={{maxHeight: '400px', objectFit: 'contain'}}
                         loading="lazy"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
                         }}
                       />
+                    ),
+                    ul: (props) => (
+                      <ul {...props} className="list-disc list-inside space-y-1 my-4" />
+                    ),
+                    ol: (props) => (
+                      <ol {...props} className="list-decimal list-inside space-y-1 my-4" />
+                    ),
+                    li: (props) => (
+                      <li {...props} className="ml-4" />
                     ),
                     a: (props) => (
                       <a {...props} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer" />
