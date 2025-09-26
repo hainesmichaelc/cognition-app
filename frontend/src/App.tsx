@@ -1,19 +1,21 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import RepoNavigator from './components/RepoNavigator'
 import IssueDashboard from './components/IssueDashboard'
+import DarkModeToggle from './components/DarkModeToggle'
 import { Toaster } from '@/components/ui/toaster'
 
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm border-b">
+      <div className="min-h-screen bg-gray-50 dark:bg-zinc-900">
+        <header className="bg-white dark:bg-zinc-950 shadow-sm border-b border-zinc-200 dark:border-zinc-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-4">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Github Issue Automation</h1>
-                <p className="text-sm text-gray-500">Powered by Devin</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-50">Github Issue Automation</h1>
+                <p className="text-sm text-gray-500 dark:text-zinc-400">Powered by Devin</p>
               </div>
+              <DarkModeToggle />
             </div>
           </div>
         </header>
