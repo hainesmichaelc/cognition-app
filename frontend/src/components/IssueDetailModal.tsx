@@ -494,7 +494,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
           {!sessionId && (
             <Card>
               <CardHeader>
-                <CardTitle>Plan & Execute</CardTitle>
+                <CardTitle>Scope Issue</CardTitle>
                 <CardDescription>
                   Start a Devin session to analyze this issue and create an implementation plan
                 </CardDescription>

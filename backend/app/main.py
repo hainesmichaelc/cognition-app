@@ -1069,7 +1069,7 @@ planning or execution.
 
 Status transitions:
 - Output "scoping" status while actively analyzing and creating the plan
-- Output "blocked" status when your plan is complete and ready for human review/approval
+- Output "blocked" status when your plan is complete but you are waiting for human review/approval
 - Output "executing" status while you are implementing your plan
 - Output "completed" status when you are finished with your implementation
 
@@ -1292,12 +1292,15 @@ following our PR template (devin_pr_template.md), including:
   - **IMPORTANT**: Include "Closes #{issue_number}" in the PR description \
 to automatically link and close the issue when merged
 
-As you make your updates, make sure you add to the structured output from the \
-original prompt to update progress each time you complete a task, or each time \
-you need to update the plan. The status should be "executing" during implementation \
-and "completed" when finished with the PR created.
+Update your structured output status to "executing", as you have now moved out \
+of the planning phase and into the "executing phase.
 
-Once the PR has been created, it can be added to the structured output."""
+As you make more updates, make sure you update your structured output from the \
+original prompt provide a status update each time you complete a task, or each time \
+you need to change the plan.
+
+Once the PR has been created, you can update your status to "completed" and add the \
+PR link to the structured output."""
 
     try:
         await devin_api.send_message(request.sessionId, execution_prompt)
