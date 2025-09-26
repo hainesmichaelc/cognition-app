@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
@@ -97,31 +97,31 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
   const { toast } = useToast()
   const { getIssueSession, fetchSessionDetails, sessionDetails, isPolling, fetchActiveSessions } = useSessionManager()
 
-  const checkForExistingSession = useCallback(async () => {
-    if (!issue) return
-    
-    try {
-      const existingSessionId = await getIssueSession(issue.id)
-      if (existingSessionId) {
-        setSessionId(existingSessionId)
-        await fetchSessionDetails(existingSessionId)
-      }
-    } catch (error) {
-      console.error('Failed to check for existing session:', error)
-    }
-  }, [issue, getIssueSession, fetchSessionDetails])
+  const autoExecutionAttemptedRef = useRef(false)
 
   useEffect(() => {
     if (session?.structured_output?.branch_suggestion && !branchName) {
       setBranchName(session.structured_output.branch_suggestion)
     }
-  }, [session?.structured_output?.branch_suggestion])
+  }, [session?.structured_output?.branch_suggestion, branchName])
 
   useEffect(() => {
-    if (isOpen && issue) {
-      checkForExistingSession()
+    if (!isOpen || !issue) return
+
+    const checkForExistingSession = async () => {
+      try {
+        const existingSessionId = await getIssueSession(issue.id)
+        if (existingSessionId) {
+          setSessionId(existingSessionId)
+          await fetchSessionDetails(existingSessionId)
+        }
+      } catch (error) {
+        console.error('Failed to check for existing session:', error)
+      }
     }
-  }, [isOpen, issue, checkForExistingSession])
+
+    checkForExistingSession()
+  }, [isOpen, issue?.id, getIssueSession, fetchSessionDetails])
 
   useEffect(() => {
     if (sessionId && sessionDetails[sessionId]) {
@@ -141,21 +141,25 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
       setSession(null)
       setIsPlanApproved(false)
       setIsExecuting(false)
+      autoExecutionAttemptedRef.current = false // Reset auto-execution flag
     }
   }, [issue?.id])
 
   useEffect(() => {
-    const handleAutoExecution = async () => {
-      if (
-        session?.status === 'blocked' &&
-        session?.structured_output?.confidence === 'high' &&
-        session?.structured_output?.branch_suggestion &&
-        !isPlanApproved &&
-        !isExecuting &&
-        sessionId &&
-        issue
-      ) {
-        const suggestedBranch = session.structured_output.branch_suggestion
+    if (
+      session?.status === 'blocked' &&
+      session?.structured_output?.confidence === 'high' &&
+      session?.structured_output?.branch_suggestion &&
+      !isPlanApproved &&
+      !isExecuting &&
+      sessionId &&
+      issue &&
+      !autoExecutionAttemptedRef.current
+    ) {
+      autoExecutionAttemptedRef.current = true
+      
+      const executeHighConfidencePlan = async () => {
+        const suggestedBranch = session.structured_output!.branch_suggestion
         setBranchName(suggestedBranch)
         setTargetBranch('main')
         setIsPlanApproved(true)
@@ -181,6 +185,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
             })
           } else {
             setIsPlanApproved(false)
+            autoExecutionAttemptedRef.current = false
             toast({
               title: "Auto-execution failed",
               description: "Please approve manually",
@@ -189,6 +194,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
           }
         } catch {
           setIsPlanApproved(false)
+          autoExecutionAttemptedRef.current = false
           toast({
             title: "Auto-execution failed",
             description: "Please approve manually",
@@ -196,10 +202,10 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
           })
         }
       }
-    }
 
-    handleAutoExecution()
-  }, [session?.status, session?.structured_output?.confidence, session?.structured_output?.branch_suggestion, isPlanApproved, isExecuting, sessionId, issue, toast])
+      executeHighConfidencePlan()
+    }
+  }, [session?.status, session?.structured_output?.confidence, session?.structured_output?.branch_suggestion, isPlanApproved, isExecuting, sessionId, issue?.id, toast])
 
   const startScoping = async () => {
     if (!issue) return

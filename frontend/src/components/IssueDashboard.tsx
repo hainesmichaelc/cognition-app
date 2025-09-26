@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,9 +49,13 @@ export default function IssueDashboard() {
   const [sortOrder, setSortOrder] = useState('asc')
   const pageSize = 100
 
-  const fetchIssues = useCallback(async (loadMore = false, customSearchQuery?: string, customSelectedLabel?: string, customSortBy?: string, customSortOrder?: string) => {
+  const paramsRef = useRef({ owner, name, searchQuery, selectedLabel, sortBy, sortOrder })
+  paramsRef.current = { owner, name, searchQuery, selectedLabel, sortBy, sortOrder }
+
+  const fetchIssues = useCallback(async (loadMore = false) => {
+    const { owner, name, searchQuery, selectedLabel, sortBy, sortOrder } = paramsRef.current
     if (!owner || !name) return
-    
+
     try {
       if (!loadMore) {
         setLoading(true)
@@ -61,29 +65,22 @@ export default function IssueDashboard() {
       }
       
       const params = new URLSearchParams()
-      const queryToUse = customSearchQuery !== undefined ? customSearchQuery : searchQuery
-      const labelToUse = customSelectedLabel !== undefined ? customSelectedLabel : selectedLabel
-      const sortByToUse = customSortBy !== undefined ? customSortBy : sortBy
-      const sortOrderToUse = customSortOrder !== undefined ? customSortOrder : sortOrder
-      
-      if (queryToUse) params.append('q', queryToUse)
-      if (labelToUse) params.append('label', labelToUse)
+      if (searchQuery) params.append('q', searchQuery)
+      if (selectedLabel) params.append('label', selectedLabel)
       params.append('page', '1')
       params.append('pageSize', pageSize.toString())
-      params.append('sort_by', sortByToUse)
-      params.append('sort_order', sortOrderToUse)
+      params.append('sort_by', sortBy)
+      params.append('sort_order', sortOrder)
       if (loadMore) params.append('load_more', 'true')
       
       const response = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${params}`)
       if (response.ok) {
         const data = await response.json()
-        
         if (loadMore) {
           setIssues(prev => [...prev, ...data.issues])
         } else {
           setIssues(data.issues)
         }
-        
         setHasMoreFromGithub(data.has_more_from_github || false)
         setAllIssuesLoaded(!data.has_more_from_github)
       } else {
@@ -104,11 +101,12 @@ export default function IssueDashboard() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [owner, name, pageSize, toast])
+  }, [toast])
 
   const fetchRepoData = useCallback(async () => {
+    const { owner, name } = paramsRef.current
     if (!owner || !name) return
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/repos`)
       if (response.ok) {
@@ -121,26 +119,22 @@ export default function IssueDashboard() {
     } catch (error) {
       console.error('Failed to fetch repository data:', error)
     }
-  }, [owner, name])
+  }, [])
 
   useEffect(() => {
-    if (owner && name) {
-      fetchIssues()
-      fetchRepoData()
-    }
-  }, [owner, name])
+    if (!owner || !name) return
+
+    fetchIssues()
+    fetchRepoData()
+  }, [owner, name, searchQuery, selectedLabel, sortBy, sortOrder, fetchIssues, fetchRepoData])
 
   useEffect(() => {
-    if (owner && name) {
-      fetchIssues(false, searchQuery, selectedLabel, sortBy, sortOrder)
-    }
-  }, [selectedLabel, sortBy, sortOrder, owner, name, searchQuery])
+    if (!owner || !name || !hasMoreFromGithub || allIssuesLoaded) return
 
-  useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         const target = entries[0]
-        if (target.isIntersecting && !loadingMore && hasMoreFromGithub && !allIssuesLoaded) {
+        if (target.isIntersecting && !loadingMore) {
           fetchIssues(true)
         }
       },
@@ -157,7 +151,7 @@ export default function IssueDashboard() {
         observer.unobserve(sentinel)
       }
     }
-  }, [loadingMore, hasMoreFromGithub, allIssuesLoaded])
+  }, [owner, name, hasMoreFromGithub, allIssuesLoaded, loadingMore, fetchIssues])
 
   const resyncRepo = async () => {
     if (!owner || !name) return
@@ -177,7 +171,7 @@ export default function IssueDashboard() {
           title: "Success",
           description: "Repository resynced successfully"
         })
-        await fetchIssues()
+        window.location.reload()
       } else {
         toast({
           title: "Error",
@@ -198,7 +192,9 @@ export default function IssueDashboard() {
   }
 
   const handleSearch = () => {
-    fetchIssues(false, searchQuery, selectedLabel, sortBy, sortOrder)
+    setIssues([])
+    setAllIssuesLoaded(false)
+    setHasMoreFromGithub(false)
   }
 
   const resetFilters = () => {
@@ -206,7 +202,6 @@ export default function IssueDashboard() {
     setSelectedLabel('')
     setSortBy('age_days')
     setSortOrder('asc')
-    fetchIssues(false)
   }
 
   const handleIssueUpdate = useCallback((issueId: number, status: string, prUrl?: string) => {
