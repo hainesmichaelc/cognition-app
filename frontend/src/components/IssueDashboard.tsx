@@ -456,7 +456,9 @@ export default function IssueDashboard() {
                             )}
                           </div>
                         ) : (
-                          <span className="text-muted-foreground text-sm">Not Scoped</span>
+                          <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                            Not Scoped
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell>
