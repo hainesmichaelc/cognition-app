@@ -1068,6 +1068,11 @@ and set progress to 100%
             "status": "scoping"
         }
 
+        try:
+            await devin_api.send_message(session_id, "Update your structured output")
+        except Exception as e:
+            print(f"Warning: Failed to send structured output request to session {session_id}: {str(e)}")
+
         return {"sessionId": session_id}
 
     except HTTPException:

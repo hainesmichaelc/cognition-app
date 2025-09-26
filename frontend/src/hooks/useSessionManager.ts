@@ -133,27 +133,6 @@ export function useSessionManager() {
     return null
   }, [])
 
-  const sendStructuredOutputRequest = useCallback(async (sessionId: string) => {
-    if (!sessionId || sessionId === 'null' || sessionId === 'undefined') {
-      return false
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/devin/${sessionId}/message`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: 'Update your structured output'
-        })
-      })
-      return response.ok
-    } catch (error) {
-      console.error(`Failed to send structured output request to ${sessionId}:`, error)
-      return false
-    }
-  }, [])
 
   const getIssueSession = useCallback(async (issueId: number) => {
     try {
@@ -199,10 +178,6 @@ export function useSessionManager() {
       
       for (const session of sessions) {
         if (session.sessionId && session.sessionId !== 'null' && session.sessionId !== 'undefined') {
-          await sendStructuredOutputRequest(session.sessionId)
-          
-          await new Promise(resolve => setTimeout(resolve, 5000))
-          
           await fetchSessionDetails(session.sessionId)
         }
       }
@@ -215,7 +190,7 @@ export function useSessionManager() {
       }
       setIsPolling(false)
     }
-  }, [fetchActiveSessions, fetchSessionDetails, sendStructuredOutputRequest])
+  }, [fetchActiveSessions, fetchSessionDetails])
 
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -265,7 +240,6 @@ export function useSessionManager() {
     cancelSession,
     startPolling,
     stopPolling,
-    updateIssueStatus,
-    sendStructuredOutputRequest
+    updateIssueStatus
   }
 }
