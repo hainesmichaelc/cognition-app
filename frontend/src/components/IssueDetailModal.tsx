@@ -568,7 +568,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                   </a>
                 </CardTitle>
                 <CardDescription>
-                  Status: {session.status}
+                  Session Status: {session.status}
                   {session.structured_output && (
                     <>
                       {' • '}
