@@ -55,7 +55,12 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
         {"count": 2, "type": "many_labels", "status": "open"},
         {"count": 3, "type": "closed", "status": "closed"},
         {"count": 2, "type": "old_issues", "status": "open"},
-        {"count": 3, "type": "recent_issues", "status": "open"}
+        {"count": 3, "type": "recent_issues", "status": "open"},
+        {"count": 2, "type": "security", "status": "open"},
+        {"count": 2, "type": "performance", "status": "open"},
+        {"count": 2, "type": "accessibility", "status": "open"},
+        {"count": 2, "type": "integration", "status": "open"},
+        {"count": 2, "type": "ui_edge_cases", "status": "open"}
     ]
     
     issue_id = 1000
@@ -125,13 +130,60 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
                 body = "This is a recent issue to test recent sorting."
                 age_days = i
             
+            elif scenario["type"] == "security":
+                labels = ["security", "vulnerability", "critical"]
+                title = f"Security Issue #{issue_id - 999}: Potential XSS vulnerability in user input validation"
+                body = ("This security issue tests how the dashboard handles "
+                        "critical security vulnerabilities. It includes "
+                        "detailed security analysis and remediation steps.")
+                age_days = i * 7
+            
+            elif scenario["type"] == "performance":
+                labels = ["performance", "optimization", "slow"]
+                title = f"Performance Issue #{issue_id - 999}: Dashboard loading takes >5 seconds with large datasets"
+                body = ("This performance issue tests dashboard handling of "
+                        "performance-related problems. It includes metrics, "
+                        "profiling data, and optimization suggestions.")
+                age_days = i * 14
+            
+            elif scenario["type"] == "accessibility":
+                labels = ["accessibility", "a11y", "wcag", "screen-reader"]
+                title = f"Accessibility Issue #{issue_id - 999}: Missing ARIA labels for dashboard navigation"
+                body = ("This accessibility issue tests how the dashboard "
+                        "displays a11y-related problems. It includes WCAG "
+                        "compliance requirements and testing procedures.")
+                age_days = i * 21
+            
+            elif scenario["type"] == "integration":
+                labels = ["integration", "api", "third-party", "webhook"]
+                title = f"Integration Issue #{issue_id - 999}: GitHub webhook integration failing intermittently"
+                body = ("This integration issue tests dashboard handling of "
+                        "third-party service problems. It includes API "
+                        "documentation, error logs, and debugging steps.")
+                age_days = i * 28
+            
+            elif scenario["type"] == "ui_edge_cases":
+                if i == 0:
+                    labels = ["ui", "edge-case", "overflow"]
+                    title = f"UI Edge Case #{issue_id - 999}: 🚀🎉💻🔥⚡️🌟✨🎯🚨🔧 Emoji-heavy title with special chars @#$%^&*()[]{{}}|\\:;\"'<>?/~`"
+                    body = ("This UI edge case tests dashboard rendering with "
+                            "special characters, emojis, and unusual formatting. "
+                            "Author: user-with-very-long-username-that-might-overflow-ui-components@example.com")
+                else:
+                    labels = ["ui", "edge-case", "rtl"]
+                    title = f"UI Edge Case #{issue_id - 999}: Right-to-left text rendering العربية עברית"
+                    body = ("This UI edge case tests dashboard handling of "
+                            "right-to-left languages and mixed text directions. "
+                            "It includes Arabic العربية and Hebrew עברית text.")
+                age_days = i * 35
+            
             test_issues.append({
                 "id": issue_id,
                 "title": title,
                 "body": body,
                 "labels": labels,
                 "number": issue_id - 999,
-                "author": f"user{(issue_id % 5) + 1}",
+                "author": f"user{(issue_id % 5) + 1}" if scenario["type"] != "ui_edge_cases" or i != 0 else "user-with-very-long-username-that-might-overflow-ui-components",
                 "created_at": datetime.now() - timedelta(days=age_days),
                 "age_days": age_days,
                 "status": scenario["status"],
@@ -155,6 +207,25 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
     repos_store[test_repo_id]["openIssuesCount"] = len([
         i for i in test_issues if i['status'] == 'open'
     ])
+    
+    print(f"   - Test scenario breakdown:")
+    for scenario in test_scenarios:
+        scenario_issues = [i for i in test_issues 
+                          if i['age_days'] in range(
+                              sum(s['count'] for s in test_scenarios[:test_scenarios.index(scenario)]) * 
+                              (7 if scenario['type'] == 'security' else 
+                               14 if scenario['type'] == 'performance' else
+                               21 if scenario['type'] == 'accessibility' else
+                               28 if scenario['type'] == 'integration' else
+                               35 if scenario['type'] == 'ui_edge_cases' else 1),
+                              sum(s['count'] for s in test_scenarios[:test_scenarios.index(scenario) + 1]) * 
+                              (7 if scenario['type'] == 'security' else 
+                               14 if scenario['type'] == 'performance' else
+                               21 if scenario['type'] == 'accessibility' else
+                               28 if scenario['type'] == 'integration' else
+                               35 if scenario['type'] == 'ui_edge_cases' else 1) + 1
+                          )]
+        print(f"     - {scenario['type']}: {scenario['count']} issues")
 
 
 class ConnectRepoRequest(BaseModel):
