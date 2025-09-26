@@ -66,19 +66,18 @@ interface IssueDetailModalProps {
   issue: Issue | null
   isOpen: boolean
   onClose: () => void
-  onIssueUpdate?: (issueId: number, status: string, prUrl?: string) => void
   repoData?: {owner: string, name: string, url: string} | null
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const isSessionCompleted = (session: DevinSession | null) => {
-  return session?.status === 'completed' || 
+  return session?.status === 'completed' ||
          session?.structured_output?.status === 'completed' ||
          session?.structured_output?.response?.status === 'completed'
 }
 
-export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate, repoData }: IssueDetailModalProps) {
+export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: IssueDetailModalProps) {
   const [additionalContext, setAdditionalContext] = useState('')
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -95,7 +94,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
   const [requestChangesMessage, setRequestChangesMessage] = useState('')
   const [questionMessage, setQuestionMessage] = useState('')
   const { toast } = useToast()
-  const { getIssueSession, fetchSessionDetails, sessionDetails, isPolling, fetchActiveSessions } = useSessionManager()
+  const { getIssueSession, fetchSessionDetails, sessionDetails, isPolling, fetchActiveSessions, updateIssueStatus } = useSessionManager()
 
   const autoExecutionAttemptedRef = useRef(false)
 
@@ -127,13 +126,13 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     if (sessionId && sessionDetails[sessionId]) {
       const sessionData = sessionDetails[sessionId]
       setSession(sessionData)
-      
+
       const prUrl = sessionData.structured_output?.pr_url || sessionData.structured_output?.response?.pr_url
       if ((sessionData.status === 'completed' || sessionData.structured_output?.response?.status === 'completed') && prUrl && issue) {
-        onIssueUpdate?.(issue.id, 'PR Submitted', prUrl)
+        updateIssueStatus(issue.id, 'PR Submitted', prUrl)
       }
     }
-  }, [sessionId, sessionDetails, issue, onIssueUpdate])
+  }, [sessionId, sessionDetails, issue, updateIssueStatus])
 
   useEffect(() => {
     if (issue) {
@@ -157,13 +156,13 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
       !autoExecutionAttemptedRef.current
     ) {
       autoExecutionAttemptedRef.current = true
-      
+
       const executeHighConfidencePlan = async () => {
         const suggestedBranch = session.structured_output!.branch_suggestion
         setBranchName(suggestedBranch)
         setTargetBranch('main')
         setIsPlanApproved(true)
-        
+
         try {
           const response = await fetch(`${API_BASE_URL}/api/issues/${issue.id}/execute`, {
             method: 'POST',
@@ -217,7 +216,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
     try {
       const formData = new FormData()
       formData.append('additionalContext', additionalContext)
-      
+
       uploadedFiles.forEach((file) => {
         formData.append('files', file)
       })
@@ -274,7 +273,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
         setFollowUpMessage('')
         toast({
           title: "Message sent successfully",
-          description: session?.status === 'running' 
+          description: session?.status === 'running'
             ? "Your context has been sent to Devin while working"
             : "Your message has been sent to Devin",
         })
@@ -451,14 +450,14 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
             <h4 className="font-semibold mb-2">Description</h4>
             <div className="bg-gray-50 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
               <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md">
-                <ReactMarkdown 
+                <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
                     img: (props) => (
-                      <img 
-                        {...props} 
-                        className="max-w-full h-auto rounded-md border border-gray-200 shadow-sm" 
-                        style={{maxHeight: '400px', objectFit: 'contain'}} 
+                      <img
+                        {...props}
+                        className="max-w-full h-auto rounded-md border border-gray-200 shadow-sm"
+                        style={{maxHeight: '400px', objectFit: 'contain'}}
                         loading="lazy"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
@@ -471,7 +470,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                     code: (props) => {
                       const {className} = props;
                       const isInline = !className || !className.includes('language-');
-                      return isInline ? 
+                      return isInline ?
                         <code {...props} className="bg-gray-200 px-1 py-0.5 rounded text-sm" /> :
                         <code {...props} className="block bg-gray-200 p-2 rounded text-sm overflow-x-auto" />
                     }
@@ -675,14 +674,14 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                           Please review the implementation plan above and choose how to proceed:
                         </p>
                         <div className="flex gap-2 flex-wrap">
-                          <Button 
+                          <Button
                             onClick={() => sendApprovalMessage('APPROVE: proceed with step 1. If risks exist, call them out first.')}
                             className="bg-green-600 hover:bg-green-700"
                           >
                             <CheckCircle className="mr-2 h-4 w-4" />
                             Approve Plan
                           </Button>
-                          <Button 
+                          <Button
                             onClick={() => setShowRequestChangesDialog(true)}
                             variant="outline"
                             className="border-orange-500 text-orange-700 hover:bg-orange-50"
@@ -690,7 +689,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                             <AlertTriangle className="mr-2 h-4 w-4" />
                             Request Changes
                           </Button>
-                          <Button 
+                          <Button
                             onClick={() => setShowQuestionDialog(true)}
                             variant="outline"
                             className="border-blue-500 text-blue-700 hover:bg-blue-50"
@@ -791,8 +790,8 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
                       <MessageSquare className="h-4 w-4 text-blue-600 mt-0.5" />
                       <div className="text-sm text-blue-700">
                         <p className="font-medium mb-1">
-                          {session.status === 'running' 
-                            ? "Devin is actively working on this issue" 
+                          {session.status === 'running'
+                            ? "Devin is actively working on this issue"
                             : "Devin is waiting for guidance"}
                         </p>
                         <p>
@@ -895,7 +894,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setRequestChangesMessage('')}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => {
                 sendApprovalMessage(`REQUEST CHANGES: ${requestChangesMessage}`)
                 setShowRequestChangesDialog(false)
@@ -928,7 +927,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setQuestionMessage('')}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => {
                 sendApprovalMessage(`QUESTION: ${questionMessage}`)
                 setShowQuestionDialog(false)

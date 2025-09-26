@@ -1042,7 +1042,7 @@ Status transitions:
 - Output "completed" status when you are finished with your implementation
 
 Additional Guidelines:
-- After planning completes, do NOT begin the implementation. Set status to "bolocked" \ 
+- After planning completes, do NOT begin the implementation. Set status to "blocked" \
 and set progress to 100%
 - Do NOT make code changes, create branches, or open PRs during the planning phase
 - Focus on thorough analysis and detailed planning to give confidence in your strategy
@@ -1093,6 +1093,11 @@ async def get_devin_session(session_id: str):
         if structured_output is None:
             messages = session_data.get("messages", [])
             structured_output = extract_structured_output_from_messages(messages)
+        elif status == "running" and structured_output is None:
+            messages = session_data.get("messages", [])
+            extracted_output = extract_structured_output_from_messages(messages)
+            if extracted_output:
+                structured_output = extracted_output
             
             if structured_output is None and status in ["blocked", "completed"]:
                 structured_output = {
