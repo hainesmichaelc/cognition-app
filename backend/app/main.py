@@ -1205,8 +1205,7 @@ async def get_devin_session(session_id: str):
                 timezone.utc)
             sessions_store[session_id]["status"] = status
 
-        if ((status == "completed" or
-             (structured_output and structured_output.get("status") == "completed")) and
+        if (structured_output and structured_output.get("status") == "completed" and
             session_id in pr_creation_store and
                 not pr_creation_store[session_id]["pr_created"]):
 

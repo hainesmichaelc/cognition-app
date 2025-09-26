@@ -72,9 +72,18 @@ interface IssueDetailModalProps {
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const isSessionCompleted = (session: DevinSession | null) => {
-  return session?.status === 'completed' ||
-         session?.structured_output?.status === 'completed' ||
-         session?.structured_output?.response?.status === 'completed'
+  if (!session) return false
+  
+  if (session.structured_output) {
+    return session.structured_output.status === 'completed' ||
+           session.structured_output.response?.status === 'completed'
+  }
+  
+  if (session.status === 'completed') {
+    return true
+  }
+  
+  return false
 }
 
 export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: IssueDetailModalProps) {
@@ -273,9 +282,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
         setFollowUpMessage('')
         toast({
           title: "Message sent successfully",
-          description: session?.status === 'running'
-            ? "Your context has been sent to Devin while working"
-            : "Your message has been sent to Devin",
+          description: "Your context has been sent to Devin while working",
         })
       } else {
         toast({
@@ -722,7 +729,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       </div>
                     )}
 
-                    {(session.status === 'completed' || session.structured_output?.response?.status === 'completed') && !isPlanApproved && !(session.structured_output?.pr_url || session.structured_output?.response?.pr_url) && (session.structured_output?.confidence || session.structured_output?.response?.confidence) !== 'high' && (
+                    {isSessionCompleted(session) && !isPlanApproved && !(session.structured_output?.pr_url || session.structured_output?.response?.pr_url) && (session.structured_output?.confidence || session.structured_output?.response?.confidence) !== 'high' && (
                       <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <CheckCircle className="h-5 w-5 text-blue-600" />
@@ -793,15 +800,13 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                 )}
 
                 {/* Follow-up message UI - always available for active sessions */}
-                {(session.status === 'running' || session.structured_output?.status === 'blocked') && !isSessionCompleted(session) && (
+                {session.status === 'running' && !isSessionCompleted(session) && (
                   <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
                     <div className="flex items-start gap-2">
                       <MessageSquare className="h-4 w-4 text-blue-600 mt-0.5" />
                       <div className="text-sm text-blue-700">
                         <p className="font-medium mb-1">
-                          {session.status === 'running'
-                            ? "Devin is actively working on this issue"
-                            : "Devin is waiting for guidance"}
+                          Devin is actively working on this issue
                         </p>
                         <p>
                           You can add additional context, requirements, or guidance at any time using the message box below.
@@ -816,13 +821,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                     <Label htmlFor="follow-up">Send Follow-up</Label>
                     <Textarea
                       id="follow-up"
-                      placeholder={
-                        session.status === 'running' 
-                          ? "Add context or guidance while Devin is working..." 
-                          : session.structured_output?.status === 'blocked'
-                          ? "Provide additional context or answer questions..."
-                          : "Ask questions or provide additional guidance..."
-                      }
+                      placeholder="Add context or guidance while Devin is working..."
                       value={followUpMessage}
                       onChange={(e) => setFollowUpMessage(e.target.value)}
                       rows={2}

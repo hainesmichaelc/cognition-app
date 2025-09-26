@@ -247,7 +247,11 @@ export function useSessionManager() {
       const session = activeSessions.find(s => s.sessionId === sessionId)
       if (sessionData) {
         const prUrl = sessionData.structured_output?.pr_url || sessionData.structured_output?.response?.pr_url
-        if ((sessionData.status === 'completed' || sessionData.structured_output?.response?.status === 'completed') && prUrl) {
+        
+        const isTaskCompleted = sessionData.structured_output?.status === 'completed' || 
+                               sessionData.structured_output?.response?.status === 'completed'
+        
+        if (isTaskCompleted && prUrl) {
           const issueId = session?.issueId
           if (issueId) {
             updateIssueStatus(issueId, 'PR Submitted', prUrl)
