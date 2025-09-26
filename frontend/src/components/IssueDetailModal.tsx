@@ -174,7 +174,8 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
               sessionId: sessionId,
               branchName: suggestedBranch,
               targetBranch: 'main',
-              approved: true
+              approved: true,
+              additionalContext: additionalContext
             })
           })
 
@@ -353,7 +354,8 @@ export default function IssueDetailModal({ issue, isOpen, onClose, onIssueUpdate
           sessionId: sessionId,
           branchName,
           targetBranch,
-          approved: true
+          approved: true,
+          additionalContext: additionalContext
         })
       })
 

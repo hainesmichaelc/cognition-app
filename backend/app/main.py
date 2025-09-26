@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl
 from typing import List, Optional, Dict, Any
@@ -179,6 +179,7 @@ class ExecuteRequest(BaseModel):
     branchName: str
     targetBranch: str = "main"
     approved: bool = False
+    additionalContext: Optional[str] = ""
 
 
 class RepoResponse(BaseModel):
@@ -904,7 +905,7 @@ async def get_issues(
 @app.post("/api/issues/{issue_id}/scope")
 async def scope_issue(
     issue_id: int,
-    additionalContext: str = "",
+    additionalContext: str = Form(""),
     files: List[UploadFile] = File(default=[])
 ):
     issue_data = None
@@ -1224,6 +1225,8 @@ async def execute_plan(issue_id: int, request: ExecuteRequest):
     issue_number = issue_data["number"]
 
     execution_prompt = f"""Execute the approved plan for the same issue.
+
+{f"Additional context from developer: {request.additionalContext}" if request.additionalContext else ""}
 
 If you need codebase context during implementation, please read the README.md \
 files in the repository to understand the project structure, development \
