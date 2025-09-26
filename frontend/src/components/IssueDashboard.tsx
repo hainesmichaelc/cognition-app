@@ -266,27 +266,27 @@ export default function IssueDashboard() {
     switch (status) {
       case 'not-scoped':
         return (
-          <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+          <Badge variant="secondary" className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">
             Not Scoped
           </Badge>
         )
       case 'scoping':
         return (
-          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+          <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
             <Loader2 className="mr-1 h-3 w-3 animate-spin" />
             Scoping
           </Badge>
         )
       case 'awaiting-input':
         return (
-          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+          <Badge variant="secondary" className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">
             <AlertTriangle className="mr-1 h-3 w-3" />
             Awaiting Input
           </Badge>
         )
       case 'executing':
         return (
-          <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+          <Badge variant="secondary" className="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200">
             <Clock className="mr-1 h-3 w-3" />
             Executing
           </Badge>
@@ -300,7 +300,7 @@ export default function IssueDashboard() {
               rel="noopener noreferrer"
               className="inline-flex items-center"
             >
-              <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer">
+              <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800 cursor-pointer">
                 <CheckCircle className="mr-1 h-3 w-3" />
                 PR Ready
               </Badge>
@@ -308,7 +308,7 @@ export default function IssueDashboard() {
           )
         } else {
           return (
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
+            <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
               <CheckCircle className="mr-1 h-3 w-3" />
               PR Ready
             </Badge>
@@ -456,14 +456,14 @@ export default function IssueDashboard() {
                                 href={sessionStatus.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800"
+                                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                               >
                                 <ExternalLink className="h-3 w-3" />
                               </a>
                             )}
                           </div>
                         ) : (
-                          <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                          <Badge variant="secondary" className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">
                             Not Scoped
                           </Badge>
                         )}
@@ -477,7 +477,7 @@ export default function IssueDashboard() {
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1"
                             >
-                              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
                                 {issueUpdates[issue.id].status}
                               </Badge>
                               <ExternalLink className="h-3 w-3" />
@@ -535,7 +535,7 @@ export default function IssueDashboard() {
                         href={`https://github.com/${issue.author}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
                       >
                         {issue.author}
                       </a>
