@@ -231,7 +231,9 @@ export default function IssueDashboard() {
       const sessionStatus = session.status
       prUrl = details.structured_output.pr_url || details.structured_output.response?.pr_url
       
-      if (structuredStatus === 'scoping') {
+      if (sessionStatus === 'executing') {
+        displayStatus = 'executing'
+      } else if (structuredStatus === 'scoping') {
         displayStatus = 'scoping'
       } else if (structuredStatus === 'blocked') {
         displayStatus = 'awaiting-input'
@@ -242,7 +244,7 @@ export default function IssueDashboard() {
       } else if (sessionStatus === 'running' || sessionStatus === 'scoping') {
         displayStatus = 'scoping'
       }
-    } else if (session.status === 'running' || session.status === 'scoping') {
+    }else if (session.status === 'running' || session.status === 'scoping') {
       displayStatus = 'scoping'
     }
     
