@@ -979,68 +979,75 @@ async def scope_issue(
     if file_contents:
         combined_context += file_contents
 
-    scoping_prompt = f"""First, read the repo context and propose a numbered \
-implementation plan. Then **STOP and wait** for my explicit approval. Do **not** \
-make code changes or run commands until I reply with `APPROVE:`. If you need \
-clarification, ask one concise question and wait.
-
-You are Devin in PLANNING PHASE ONLY. Your job is to \
-analyze this GitHub issue for feasibility and create a detailed \
-implementation \
-plan for human review and approval.
+    scoping_prompt = f"""You are Devin, an expert at planning \
+technical impelmentations. In this phase, your job is to \
+analyze a GitHub issue from a user-specified repo for feasibility \
+and create a detailed implementation plan for human review and approval.
 
 IMPORTANT: This is a scoping session, NOT implementation. Do NOT make any \
-code \
-changes, create branches, or implement anything. Your role is strictly to \
-analyze and plan.
+code changes, create branches, or implement anything. Your role is strictly to \
+analyze and plan. First, read the repo context and propose a numbered \
+implementation plan. Then **STOP and wait** for my explicit approval. Do **not** \
+make code changes or run commands until I reply with `APPROVE:`. In your plan, \
+you can ask for additional context to be supplied by the user.
 
-To understand the codebase architecture and context, please read all \
-README.md \
+To understand the codebase architecture and context, please read all README.md \
 files present in the repository. Start by reading the main README.md in the \
 root, then explore any README.md files in subdirectories (like backend/, \
 frontend/, docs/, etc.) to get comprehensive context about the project \
 structure, technology stack, and development workflow.
 
-Repo: {repo_url}
-Issue: {issue_title} (#{issue_number})
-Issue URL: {issue_url}
-Issue Body:
+Here is the issue date for the current planning task: 
+
+*Repo*: {repo_url}
+*Issue*: {issue_title} (#{issue_number})
+*Issue URL*: {issue_url}
+*Issue Body*:
 {issue_body}
 
-Additional context from developer:
+The developer had the option to supply additioal context as well. Here it is:
 {combined_context}
 
-Please produce and keep updated a Structured Output JSON with the \
-following schema:
+Please produce and keep updated a Structured Output JSON with the following schema \
 {{
-  "progress_pct": 100,
+  "progress_pct": 0-100%,
   "confidence": "low|medium|high",
-  "status": "scoping",
+  "status": "scoping|blocked|executing|completed",
   "summary": "one-paragraph implementation plan",
-  "risks": ["list of potential risks"],
-  "dependencies": ["list of dependencies"],
-  "estimated_hours": <number>,
-  "action_plan": [{{"step":1,"desc":"detailed implementation step",\
+  "risks": ["risk1", "risk2", "etc."],
+  "dependencies": ["dependency1", "dependency2", "etc."],
+  "action_plan": [{{"step":1,"desc":"detailed implementation step 1",\
+"done":false}}, {{"step":2 ,"desc":"detailed implementation step 2",\
+"done":false}}, {{"step":N,"desc":"detailed implementation step N",\
 "done":false}}],
-  "branch_suggestion": "feat/issue-{issue_number}-<slug>"
+  "branch_suggestion": "feat/issue-{issue_number}-<slug>",
+  "pr_url": "url"
 }}
 
+Provide updates to the structured output whenever you take a new action \
+or learn new information that changes your planned approach. This includes \
+situations where the user has applied additional context. After the planning \
+phase completes, update your structured output every time you complete a \
+step in the implementation your plan, or if you need to alter the plan.
+
+Progress output:
+- Progress should measure against completion of the current task at hand, either \
+planning or execution.
+- The UI that renders depends on both the progress and the status of the output
+
 Status transitions:
-- Use "scoping" while actively analyzing and creating the plan
-- Change to "blocked" when your plan is complete and ready for human review/approval
-- Use "executing" during implementation phase  
-- Use "completed" when finished
+- Output "scoping" status while actively analyzing and creating the plan
+- Output "blocked" status when your plan is complete and ready for human review/approval
+- Output "executing" status while you are implementing your plan
+- Output "completed" status when you are finished with your implementation
 
-IMPORTANT: Set status to "blocked" when you finish your analysis and plan (progress_pct: 100) to trigger the approval workflow in the UI.
-
-Guidelines:
-- PLANNING PHASE ONLY - Do NOT implement anything
-- Do NOT make code changes, create branches, or open PRs
-- Focus on thorough analysis and detailed planning
+Additional Guidelines:
+- After planning completes, do NOT begin the implementation. Set status to "bolocked" \ 
+and set progress to 100%
+- Do NOT make code changes, create branches, or open PRs during the planning phase
+- Focus on thorough analysis and detailed planning to give confidence in your strategy
 - Include architecture considerations and test strategy
-- Set progress_pct to 100 when planning is complete
-- When your plan is complete and ready for review, set status to "blocked" to enable the approval workflow
-- Keep Structured Output updated as you refine the plan"""
+- The pr_url output will be null until after the execution phase."""
 
     try:
         session_response = await devin_api.create_session(
@@ -1173,15 +1180,12 @@ async def get_devin_session(session_id: str):
 
 @app.post("/api/devin/{session_id}/message")
 async def send_message_to_devin(session_id: str, request: MessageRequest):
-    follow_up_prompt = f"""Apply these follow-up instructions to the \
-existing plan:
+    follow_up_prompt = f"""The user has offered this additional context \
+which you should take into consideration:
 {request.message}
 
-If you need additional codebase context, please read the relevant README.md \
-files in the repository to understand the project structure and architecture.
-
-Then update the Structured Output JSON accordingly (plan steps, risks, \
-estimates, confidence, progress_pct)."""
+Perform any additional required research of the codebase and then \
+update the plan and structured output accordingly."""
 
     try:
         await devin_api.send_message(session_id, follow_up_prompt)
@@ -1224,13 +1228,13 @@ async def execute_plan(issue_id: int, request: ExecuteRequest):
 
     issue_number = issue_data["number"]
 
-    execution_prompt = f"""Execute the approved plan for the same issue.
+    execution_prompt = f"""The user has approved your plan. Continue with the \
+implementation. Feel free to explore the repository as needed to inform your \
+implementation and testing strategy, as well as the additional context that \
+may have been provided by the developer.
 
-{f"Additional context from developer: {request.additionalContext}" if request.additionalContext else ""}
-
-If you need codebase context during implementation, please read the README.md \
-files in the repository to understand the project structure, development \
-workflow, and deployment processes.
+Additional Context:
+{request.additionalContext}
 
 Requirements:
 - Create a new branch named: {request.branchName} from \
@@ -1246,20 +1250,12 @@ following our PR template (devin_pr_template.md), including:
   - **IMPORTANT**: Include "Closes #{issue_number}" in the PR description \
 to automatically link and close the issue when merged
 
-Provide the created PR URL in your final message and set Structured Output:
-{{
-  "progress_pct": 100,
-  "confidence": "<final assessment>",
-  "status": "completed",
-  "summary": "Implemented",
-  "risks": ["any implementation risks encountered"],
-  "dependencies": ["dependencies used"],
-  "action_plan": [... with done=true],
-  "branch_suggestion": "feat/issue-{issue_number}-<slug>",
-  "pr_url": "<url>"
-}}
+As you make your updates, make sure you add to the structured output from the \
+original prompt to update progress each time you complete a task, or each time \
+you need to update the plan. The status should be "executing" during implementation \
+and "completed" when finished with the PR created.
 
-Status should be "executing" during implementation and "completed" when finished with PR created."""
+Once the PR has been created, it can be added to the structured output."""
 
     try:
         await devin_api.send_message(request.sessionId, execution_prompt)
