@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { ArrowLeft, Search, RefreshCw, X, ExternalLink, Loader2, CheckCircle, AlertCircle, Clock, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Search, RefreshCw, X, ExternalLink, Loader2, CheckCircle, Clock, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useSessionManager } from '@/hooks/useSessionManager'
 import IssueDetailModal from './IssueDetailModal'
@@ -229,16 +229,47 @@ export default function IssueDashboard() {
     if (!session) return null
     
     const details = sessionDetails[session.sessionId]
+    
+    let displayStatus = 'not-scoped'
+    let prUrl = null
+    
+    if (details?.structured_output) {
+      const structuredStatus = details.structured_output.status
+      const sessionStatus = session.status
+      prUrl = details.structured_output.pr_url || details.structured_output.response?.pr_url
+      
+      if (structuredStatus === 'scoping') {
+        displayStatus = 'scoping'
+      } else if (structuredStatus === 'blocked') {
+        displayStatus = 'awaiting-input'
+      } else if (structuredStatus === 'executing') {
+        displayStatus = 'executing'
+      } else if (structuredStatus === 'completed' || sessionStatus === 'completed') {
+        displayStatus = 'pr-ready'
+      } else if (sessionStatus === 'running' || sessionStatus === 'scoping') {
+        displayStatus = 'scoping'
+      }
+    } else if (session.status === 'running' || session.status === 'scoping') {
+      displayStatus = 'scoping'
+    }
+    
     return {
       sessionId: session.sessionId,
-      status: session.status,
+      status: displayStatus,
       details,
-      url: details?.url
+      url: details?.url,
+      prUrl: prUrl || undefined
     }
   }
 
-  const getSessionStatusBadge = (status: string) => {
+  const getSessionStatusBadge = (status: string, prUrl?: string) => {
     switch (status) {
+      case 'not-scoped':
+        return (
+          <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+            Not Scoped
+          </Badge>
+        )
       case 'scoping':
         return (
           <Badge variant="secondary" className="bg-blue-100 text-blue-800">
@@ -246,18 +277,11 @@ export default function IssueDashboard() {
             Scoping
           </Badge>
         )
-      case 'ready':
+      case 'awaiting-input':
         return (
-          <Badge variant="secondary" className="bg-green-100 text-green-800">
-            <CheckCircle className="mr-1 h-3 w-3" />
-            Ready for Review
-          </Badge>
-        )
-      case 'completed':
-        return (
-          <Badge variant="secondary" className="bg-green-100 text-green-800">
-            <CheckCircle className="mr-1 h-3 w-3" />
-            Completed
+          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+            <AlertTriangle className="mr-1 h-3 w-3" />
+            Awaiting Input
           </Badge>
         )
       case 'executing':
@@ -267,20 +291,29 @@ export default function IssueDashboard() {
             Executing
           </Badge>
         )
-      case 'suspended':
-        return (
-          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-            <AlertTriangle className="mr-1 h-3 w-3" />
-            Suspended
-          </Badge>
-        )
-      case 'failed':
-        return (
-          <Badge variant="secondary" className="bg-red-100 text-red-800">
-            <AlertCircle className="mr-1 h-3 w-3" />
-            Failed
-          </Badge>
-        )
+      case 'pr-ready':
+        if (prUrl) {
+          return (
+            <a
+              href={prUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center"
+            >
+              <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer">
+                <CheckCircle className="mr-1 h-3 w-3" />
+                PR Ready
+              </Badge>
+            </a>
+          )
+        } else {
+          return (
+            <Badge variant="secondary" className="bg-green-100 text-green-800">
+              <CheckCircle className="mr-1 h-3 w-3" />
+              PR Ready
+            </Badge>
+          )
+        }
       default:
         return null
     }
@@ -417,8 +450,8 @@ export default function IssueDashboard() {
                       <TableCell>
                         {sessionStatus ? (
                           <div className="flex items-center gap-2">
-                            {getSessionStatusBadge(sessionStatus.status)}
-                            {sessionStatus.url && (
+                            {getSessionStatusBadge(sessionStatus.status, sessionStatus.prUrl)}
+                            {sessionStatus.status !== 'not-scoped' && sessionStatus.url && (
                               <a
                                 href={sessionStatus.url}
                                 target="_blank"
@@ -430,7 +463,7 @@ export default function IssueDashboard() {
                             )}
                           </div>
                         ) : (
-                          <span className="text-muted-foreground text-sm">No session</span>
+                          <span className="text-muted-foreground text-sm">Not Scoped</span>
                         )}
                       </TableCell>
                       <TableCell>
