@@ -389,7 +389,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
       case 'high': return 'text-green-600'
       case 'medium': return 'text-yellow-600'
       case 'low': return 'text-red-600'
-      default: return 'text-gray-600'
+      default: return 'text-gray-600 dark:text-gray-300'
     }
   }
 
@@ -448,15 +448,15 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
 
           <div>
             <h4 className="font-semibold mb-2">Description</h4>
-            <div className="bg-gray-50 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
-              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md prose-ul:space-y-1 prose-ol:space-y-1 prose-li:marker:text-gray-600">
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
+              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md prose-ul:space-y-1 prose-ol:space-y-1 prose-li:marker:text-gray-600 dark:prose-invert">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
                     img: (props) => (
                       <img
                         {...props}
-                        className="max-w-full h-auto rounded-md border border-gray-200 shadow-sm my-4"
+                        className="max-w-full h-auto rounded-md border border-gray-200 dark:border-gray-600 shadow-sm my-4"
                         style={{maxHeight: '400px', objectFit: 'contain'}}
                         loading="lazy"
                         onError={(e) => {
@@ -474,14 +474,14 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       <li {...props} className="ml-4" />
                     ),
                     a: (props) => (
-                      <a {...props} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer" />
+                      <a {...props} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer" />
                     ),
                     code: (props) => {
                       const {className} = props;
                       const isInline = !className || !className.includes('language-');
                       return isInline ?
-                        <code {...props} className="bg-gray-200 px-1 py-0.5 rounded text-sm" /> :
-                        <code {...props} className="block bg-gray-200 p-2 rounded text-sm overflow-x-auto" />
+                        <code {...props} className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm" /> :
+                        <code {...props} className="block bg-gray-200 dark:bg-gray-700 p-2 rounded text-sm overflow-x-auto" />
                     }
                   }}
                 >
@@ -512,12 +512,12 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                         const files = Array.from(e.target.files || [])
                         setUploadedFiles(files)
                       }}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                     />
                     {uploadedFiles.length > 0 && (
                       <div className="mt-2 space-y-1">
                         {uploadedFiles.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                          <div key={index} className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded">
                             <span>{file.name} ({(file.size / 1024).toFixed(1)} KB)</span>
                             <button
                               onClick={() => {
@@ -614,7 +614,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
 
                     <div>
                       <h5 className="font-semibold mb-2">Summary</h5>
-                      <p className="text-sm text-gray-700">{session.structured_output.summary}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-200">{session.structured_output.summary}</p>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-4">
@@ -664,7 +664,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                               ) : (
                                 <CheckCircle className="h-4 w-4 mt-1 text-gray-300" />
                               )}
-                              <span className={`text-sm ${step.done ? 'line-through text-gray-500' : ''}`}>
+                              <span className={`text-sm ${step.done ? 'line-through text-gray-500 dark:text-gray-400' : ''}`}>
                                 {step.step}. {step.desc}
                               </span>
                             </div>
