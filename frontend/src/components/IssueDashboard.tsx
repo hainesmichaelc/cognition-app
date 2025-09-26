@@ -107,7 +107,7 @@ export default function IssueDashboard() {
 
     fetchIssues()
     fetchRepoData()
-  }, [owner, name, searchQuery, selectedLabel, sortBy, sortOrder, pageSize, toast])
+  }, [owner, name, searchQuery, selectedLabel, sortBy, sortOrder, pageSize])
 
   useEffect(() => {
     if (!owner || !name || !hasMoreFromGithub || allIssuesLoaded) return
