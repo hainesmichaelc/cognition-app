@@ -146,7 +146,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
 
   useEffect(() => {
     if (
-      session?.status === 'blocked' &&
+      session?.structured_output?.status === 'blocked' &&
       session?.structured_output?.confidence === 'high' &&
       session?.structured_output?.branch_suggestion &&
       !isPlanApproved &&
@@ -664,7 +664,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       </div>
                     </div>
 
-                    {session.status === 'blocked' && !isPlanApproved && session.structured_output?.confidence !== 'high' && (
+                    {session.structured_output?.status === 'blocked' && !isPlanApproved && session.structured_output?.confidence !== 'high' && (
                       <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <Clock className="h-5 w-5 text-blue-600" />
@@ -701,7 +701,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       </div>
                     )}
 
-                    {session.status === 'blocked' && session.structured_output?.confidence === 'high' && !isPlanApproved && (
+                    {session.structured_output?.status === 'blocked' && session.structured_output?.confidence === 'high' && !isPlanApproved && (
                       <div className="bg-green-50 border border-green-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <Loader2 className="h-5 w-5 text-green-600 animate-spin" />
@@ -784,7 +784,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                 )}
 
                 {/* Follow-up message UI - always available for active sessions */}
-                {(session.status === 'running' || session.status === 'blocked') && !isSessionCompleted(session) && (
+                {(session.status === 'running' || session.structured_output?.status === 'blocked') && !isSessionCompleted(session) && (
                   <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
                     <div className="flex items-start gap-2">
                       <MessageSquare className="h-4 w-4 text-blue-600 mt-0.5" />
@@ -808,9 +808,9 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                     <Textarea
                       id="follow-up"
                       placeholder={
-                        session.status === 'running'
-                          ? "Add context or guidance while Devin is working..."
-                          : session.status === 'blocked'
+                        session.status === 'running' 
+                          ? "Add context or guidance while Devin is working..." 
+                          : session.structured_output?.status === 'blocked'
                           ? "Provide additional context or answer questions..."
                           : "Ask questions or provide additional guidance..."
                       }
