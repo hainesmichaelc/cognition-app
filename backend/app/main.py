@@ -132,7 +132,8 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
             
             elif scenario["type"] == "security":
                 labels = ["security", "vulnerability", "critical"]
-                title = f"Security Issue #{issue_id - 999}: Potential XSS vulnerability in user input validation"
+                title = (f"Security Issue #{issue_id - 999}: Potential XSS "
+                         f"vulnerability in user input validation")
                 body = ("This security issue tests how the dashboard handles "
                         "critical security vulnerabilities. It includes "
                         "detailed security analysis and remediation steps.")
@@ -140,7 +141,8 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
             
             elif scenario["type"] == "performance":
                 labels = ["performance", "optimization", "slow"]
-                title = f"Performance Issue #{issue_id - 999}: Dashboard loading takes >5 seconds with large datasets"
+                title = (f"Performance Issue #{issue_id - 999}: Dashboard "
+                         f"loading takes >5 seconds with large datasets")
                 body = ("This performance issue tests dashboard handling of "
                         "performance-related problems. It includes metrics, "
                         "profiling data, and optimization suggestions.")
@@ -148,7 +150,8 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
             
             elif scenario["type"] == "accessibility":
                 labels = ["accessibility", "a11y", "wcag", "screen-reader"]
-                title = f"Accessibility Issue #{issue_id - 999}: Missing ARIA labels for dashboard navigation"
+                title = (f"Accessibility Issue #{issue_id - 999}: Missing "
+                         f"ARIA labels for dashboard navigation")
                 body = ("This accessibility issue tests how the dashboard "
                         "displays a11y-related problems. It includes WCAG "
                         "compliance requirements and testing procedures.")
@@ -156,7 +159,8 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
             
             elif scenario["type"] == "integration":
                 labels = ["integration", "api", "third-party", "webhook"]
-                title = f"Integration Issue #{issue_id - 999}: GitHub webhook integration failing intermittently"
+                title = (f"Integration Issue #{issue_id - 999}: GitHub "
+                         f"webhook integration failing intermittently")
                 body = ("This integration issue tests dashboard handling of "
                         "third-party service problems. It includes API "
                         "documentation, error logs, and debugging steps.")
@@ -165,16 +169,22 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
             elif scenario["type"] == "ui_edge_cases":
                 if i == 0:
                     labels = ["ui", "edge-case", "overflow"]
-                    title = f"UI Edge Case #{issue_id - 999}: 🚀🎉💻🔥⚡️🌟✨🎯🚨🔧 Emoji-heavy title with special chars @#$%^&*()[]{{}}|\\:;\"'<>?/~`"
+                    title = (f"UI Edge Case #{issue_id - 999}: "
+                             f"🚀🎉💻🔥⚡️🌟✨🎯🚨🔧 Emoji-heavy title with "
+                             f"special chars @#$%^&*()[]{{}}|\\:;\"'<>?/~`")
                     body = ("This UI edge case tests dashboard rendering with "
-                            "special characters, emojis, and unusual formatting. "
-                            "Author: user-with-very-long-username-that-might-overflow-ui-components@example.com")
+                            "special characters, emojis, and unusual "
+                            "formatting. Author: user-with-very-long-"
+                            "username-that-might-overflow-ui-components"
+                            "@example.com")
                 else:
                     labels = ["ui", "edge-case", "rtl"]
-                    title = f"UI Edge Case #{issue_id - 999}: Right-to-left text rendering العربية עברית"
+                    title = (f"UI Edge Case #{issue_id - 999}: "
+                             f"Right-to-left text rendering العربية עברית")
                     body = ("This UI edge case tests dashboard handling of "
-                            "right-to-left languages and mixed text directions. "
-                            "It includes Arabic العربية and Hebrew עברית text.")
+                            "right-to-left languages and mixed text "
+                            "directions. It includes Arabic العربية and "
+                            "Hebrew עברית text.")
                 age_days = i * 35
             
             test_issues.append({
@@ -183,7 +193,10 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
                 "body": body,
                 "labels": labels,
                 "number": issue_id - 999,
-                "author": f"user{(issue_id % 5) + 1}" if scenario["type"] != "ui_edge_cases" or i != 0 else "user-with-very-long-username-that-might-overflow-ui-components",
+                "author": (f"user{(issue_id % 5) + 1}"
+                          if scenario["type"] != "ui_edge_cases" or i != 0
+                          else "user-with-very-long-username-that-might-"
+                               "overflow-ui-components"),
                 "created_at": datetime.now() - timedelta(days=age_days),
                 "age_days": age_days,
                 "status": scenario["status"],
