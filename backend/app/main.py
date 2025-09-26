@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import os
 import re
 import json
+import asyncio
 from urllib.parse import unquote
 
 load_dotenv()
@@ -24,15 +25,61 @@ app.add_middleware(
 )
 
 
+async def periodic_structured_output_updates():
+    """Send structured output update requests every minute for active sessions"""
+    global structured_output_update_store
+    while True:
+        try:
+            current_time = datetime.now(timezone.utc)
+
+            for session_id, session_data in sessions_store.items():
+                if session_data["status"] not in [
+                    "completed", "failed", "cancelled"
+                ]:
+                    last_update = structured_output_update_store.get(session_id)
+
+                    if not last_update or (
+                        current_time - last_update
+                    ).total_seconds() >= 60:
+                        try:
+                            await devin_api.send_message(
+                                session_id,
+                                "Please update your structured output with "
+                                "current progress"
+                            )
+                            structured_output_update_store[session_id] = (
+                                current_time
+                            )
+                        except Exception as e:
+                            print(
+                                f"Warning: Failed to send structured output "
+                                f"update to session {session_id}: {str(e)}"
+                            )
+
+            cutoff_time = current_time - timedelta(hours=24)
+            old_entries = [
+                k for k, v in structured_output_update_store.items()
+                if v <= cutoff_time
+            ]
+            for k in old_entries:
+                del structured_output_update_store[k]
+
+        except Exception as e:
+            print(f"Error in periodic structured output updates: {str(e)}")
+
+        await asyncio.sleep(60)
+
 @app.on_event("startup")
 async def startup_event():
     """Run cleanup on startup"""
     cleanup_old_sessions()
+    asyncio.create_task(periodic_structured_output_updates())
 
 repos_store: Dict[str, Dict] = {}
 issues_store: Dict[str, List[Dict]] = {}
 pr_creation_store: Dict[str, Dict[str, Any]] = {}
 sessions_store: Dict[str, Dict[str, Any]] = {}
+structured_output_update_store: Dict[str, datetime] = {}
 
 if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
     test_repo_id = "testuser/test-repo"
@@ -1122,32 +1169,31 @@ async def get_devin_session(session_id: str):
         status = session_data.get("status", "unknown")
         structured_output = session_data.get("structured_output")
         
-        if structured_output is None:                
+        if structured_output is None:
             messages = session_data.get("messages", [])
-            structured_output = extract_structured_output_from_messages(messages)
-            if structured_output is None:
-                try:
-                    await devin_api.send_message(session_id, "Update your structured output")
-                except Exception as e:
-                    print(f"Warning: Failed to send structured output request to session {session_id}: {str(e)}")
+            structured_output = extract_structured_output_from_messages(
+                messages
+            )
         elif status == "running" and structured_output is None:
             messages = session_data.get("messages", [])
-            extracted_output = extract_structured_output_from_messages(messages)
+            extracted_output = extract_structured_output_from_messages(
+                messages
+            )
             if extracted_output:
                 structured_output = extracted_output
-            
-            if structured_output is None and status in ["blocked", "completed"]:
-                structured_output = {
-                    "progress_pct": 0,
-                    "confidence": "low",
-                    "status": "scoping",
-                    "summary": "Creating Plan",
-                    "risks": [],
-                    "dependencies": [],
-                    "estimated_hours": 0,
-                    "action_plan": [],
-                    "branch_suggestion": ""
-                }
+
+        if structured_output is None and status in ["blocked", "completed"]:
+            structured_output = {
+                "progress_pct": 0,
+                "confidence": "low",
+                "status": "scoping",
+                "summary": "Creating Plan",
+                "risks": [],
+                "dependencies": [],
+                "estimated_hours": 0,
+                "action_plan": [],
+                "branch_suggestion": ""
+            }
         
         clean_session_id = session_id.removeprefix("devin-")
         url = session_data.get(

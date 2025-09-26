@@ -20,6 +20,10 @@ const restoreIssueUpdates = (): Record<number, {status: string, prUrl?: string}>
   }
 }
 
+const isTerminalStatus = (status: string): boolean => {
+  return ['completed', 'failed', 'cancelled'].includes(status)
+}
+
 interface SessionData {
   sessionId: string
   issueId: number
@@ -82,6 +86,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 export function useSessionManager() {
   const [activeSessions, setActiveSessions] = useState<SessionData[]>([])
   const [sessionDetails, setSessionDetails] = useState<Record<string, DevinSession>>({})
+  const [trackedSessionIds, setTrackedSessionIds] = useState<Set<string>>(new Set())
   const [issueUpdates, setIssueUpdates] = useState<Record<number, {status: string, prUrl?: string}>>(() => restoreIssueUpdates())
   const [isPolling, setIsPolling] = useState(false)
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -126,6 +131,12 @@ export function useSessionManager() {
           [sessionId]: sessionData
         }))
         return sessionData
+      } else if (response.status === 404) {
+        setTrackedSessionIds(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(sessionId)
+          return newSet
+        })
       }
     } catch (error) {
       console.error(`Failed to fetch session details for ${sessionId}:`, error)
@@ -176,9 +187,23 @@ export function useSessionManager() {
     pollingIntervalRef.current = setInterval(async () => {
       const sessions = await fetchActiveSessions()
       
-      for (const session of sessions) {
+      sessions.forEach((session: SessionData) => {
         if (session.sessionId && session.sessionId !== 'null' && session.sessionId !== 'undefined') {
-          await fetchSessionDetails(session.sessionId)
+          setTrackedSessionIds(prev => new Set([...prev, session.sessionId]))
+        }
+      })
+      
+      for (const sessionId of trackedSessionIds) {
+        if (sessionId && sessionId !== 'null' && sessionId !== 'undefined') {
+          const sessionData = await fetchSessionDetails(sessionId)
+          
+          if (sessionData && isTerminalStatus(sessionData.status)) {
+            setTrackedSessionIds(prev => {
+              const newSet = new Set(prev)
+              newSet.delete(sessionId)
+              return newSet
+            })
+          }
         }
       }
     }, 10000)
@@ -190,7 +215,7 @@ export function useSessionManager() {
       }
       setIsPolling(false)
     }
-  }, [fetchActiveSessions, fetchSessionDetails])
+  }, [fetchActiveSessions, fetchSessionDetails, trackedSessionIds])
 
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -214,10 +239,13 @@ export function useSessionManager() {
   useEffect(() => {
     Object.entries(sessionDetails).forEach(([sessionId, sessionData]) => {
       const session = activeSessions.find(s => s.sessionId === sessionId)
-      if (session && sessionData) {
+      if (sessionData) {
         const prUrl = sessionData.structured_output?.pr_url || sessionData.structured_output?.response?.pr_url
         if ((sessionData.status === 'completed' || sessionData.structured_output?.response?.status === 'completed') && prUrl) {
-          updateIssueStatus(session.issueId, 'PR Submitted', prUrl)
+          const issueId = session?.issueId
+          if (issueId) {
+            updateIssueStatus(issueId, 'PR Submitted', prUrl)
+          }
         }
       }
     })
@@ -232,6 +260,7 @@ export function useSessionManager() {
   return {
     activeSessions,
     sessionDetails,
+    trackedSessionIds,
     issueUpdates,
     isPolling,
     fetchActiveSessions,
