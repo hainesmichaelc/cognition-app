@@ -422,7 +422,20 @@ export default function IssueDashboard() {
         <CardContent>
           {issues.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">No issues found</p>
+              <p className="text-muted-foreground">
+                {searchQuery || selectedLabel ? 
+                  "No issues match your current filters" : 
+                  "No issues found"}
+              </p>
+              {(searchQuery || selectedLabel) && (
+                <Button 
+                  variant="outline" 
+                  onClick={resetFilters}
+                  className="mt-2"
+                >
+                  Clear Filters
+                </Button>
+              )}
             </div>
           ) : (
             <Table>
@@ -488,8 +501,9 @@ export default function IssueDashboard() {
                       </TableCell>
                     <TableCell>
                       <button
-                        className="text-left hover:underline font-medium"
+                        className="text-left hover:underline font-medium max-w-md truncate block"
                         onClick={() => openIssueDetail(issue)}
+                        title={issue.title}
                       >
                         {issue.title}
                       </button>

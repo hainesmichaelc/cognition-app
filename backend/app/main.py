@@ -103,7 +103,12 @@ if os.getenv("LOAD_TEST_DATA", "false").lower() == "true":
         {"count": 2, "type": "markdown_content", "status": "open"},
         {"count": 3, "type": "closed", "status": "closed"},
         {"count": 2, "type": "old_issues", "status": "open"},
-        {"count": 3, "type": "recent_issues", "status": "open"}
+        {"count": 3, "type": "recent_issues", "status": "open"},
+        {"count": 2, "type": "unicode_content", "status": "open"},
+        {"count": 1, "type": "empty_body", "status": "open"},
+        {"count": 2, "type": "special_characters", "status": "open"},
+        {"count": 1, "type": "extremely_long_title", "status": "open"},
+        {"count": 15, "type": "performance_test", "status": "open"}
     ]
     
     issue_id = 1000
@@ -202,6 +207,32 @@ function test() {
                 body = "This is a recent issue to test recent sorting."
                 age_days = i
             
+            elif scenario["type"] == "unicode_content":
+                labels = ["internationalization", "unicode", "testing"]
+                title = f"Unicode Test Issue #{issue_id - 999}: 测试 🚀 العربية"
+                body = "Testing unicode content: 日本語 🎉 Español français русский العربية ñáéíóú"
+            
+            elif scenario["type"] == "empty_body":
+                labels = ["minimal", "edge-case"]
+                title = f"Issue With Empty Body #{issue_id - 999}"
+                body = ""
+            
+            elif scenario["type"] == "special_characters":
+                labels = ["edge-case", "special-chars"]
+                title = f"Special Characters Test #{issue_id - 999}: <>&\"'`"
+                body = "Testing special characters: <script>alert('test')</script> & \"quotes\" 'apostrophes' `backticks`"
+            
+            elif scenario["type"] == "extremely_long_title":
+                labels = ["ui-test", "overflow"]
+                title = f"Extremely Long Title That Should Test UI Overflow And Text Wrapping Behavior In The Dashboard Table Component When Titles Exceed Normal Length Expectations And Continue Beyond Reasonable Limits #{issue_id - 999}"
+                body = "This issue tests how the dashboard handles extremely long titles that exceed normal display expectations."
+            
+            elif scenario["type"] == "performance_test":
+                labels = ["performance", "load-test", "dashboard"]
+                title = f"Performance Test Issue #{issue_id - 999}"
+                body = f"This is performance test issue #{issue_id - 999} designed to test dashboard performance with larger datasets."
+                age_days = i % 30
+            
             test_issues.append({
                 "id": issue_id,
                 "title": title,
@@ -217,17 +248,28 @@ function test() {
 
     issues_store[test_repo_id] = test_issues
     
-    print(f"✅ Loaded {len(test_issues)} test issues for {test_repo_id}")
-    print(f"   - Issues with labels: "
-          f"{len([i for i in test_issues if i['labels']])}")
-    print(f"   - Issues without labels: "
-          f"{len([i for i in test_issues if not i['labels']])}")
-    print(f"   - Open issues: "
-          f"{len([i for i in test_issues if i['status'] == 'open'])}")
-    print(f"   - Closed issues: "
-          f"{len([i for i in test_issues if i['status'] == 'closed'])}")
-    print(f"   - Age range: {min(i['age_days'] for i in test_issues)} to "
-          f"{max(i['age_days'] for i in test_issues)} days")
+    def validate_test_data(test_issues):
+        """Validate test data completeness and integrity"""
+        validation_results = {
+            "total_issues": len(test_issues),
+            "issues_with_labels": len([i for i in test_issues if i['labels']]),
+            "issues_without_labels": len([i for i in test_issues if not i['labels']]),
+            "open_issues": len([i for i in test_issues if i['status'] == 'open']),
+            "closed_issues": len([i for i in test_issues if i['status'] == 'closed']),
+            "unique_authors": len(set(i['author'] for i in test_issues)),
+            "age_range": f"{min(i['age_days'] for i in test_issues)} to {max(i['age_days'] for i in test_issues)} days",
+            "unicode_issues": len([i for i in test_issues if any(ord(c) > 127 for c in i['title'])]),
+            "empty_body_issues": len([i for i in test_issues if not i['body']]),
+            "long_title_issues": len([i for i in test_issues if len(i['title']) > 100])
+        }
+        
+        print("📊 Test Data Validation Results:")
+        for key, value in validation_results.items():
+            print(f"   - {key.replace('_', ' ').title()}: {value}")
+        
+        return validation_results
+    
+    validate_test_data(test_issues)
     
     repos_store[test_repo_id]["openIssuesCount"] = len([
         i for i in test_issues if i['status'] == 'open'
