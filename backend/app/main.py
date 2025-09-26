@@ -1100,11 +1100,6 @@ and set progress to 100%
             "status": "scoping"
         }
 
-        try:
-            await devin_api.send_message(session_id, "Update your structured output")
-        except Exception as e:
-            print(f"Warning: Failed to send structured output request to session {session_id}: {str(e)}")
-
         return {"sessionId": session_id}
 
     except HTTPException:
@@ -1128,6 +1123,11 @@ async def get_devin_session(session_id: str):
         structured_output = session_data.get("structured_output")
         
         if structured_output is None:
+            try:
+                await devin_api.send_message(session_id, "Update your structured output")
+            except Exception as e:
+                print(f"Warning: Failed to send structured output request to session {session_id}: {str(e)}")
+                
             messages = session_data.get("messages", [])
             structured_output = extract_structured_output_from_messages(messages)
         elif status == "running" and structured_output is None:
