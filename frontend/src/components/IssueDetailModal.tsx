@@ -833,7 +833,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                   </Button>
                 </div>
 
-                    {isPlanApproved && !(session.structured_output?.pr_url || session.structured_output?.response?.pr_url) && (
+                    {isPlanApproved && !autoExecutionAttemptedRef.current && !(session.structured_output?.pr_url || session.structured_output?.response?.pr_url) && (
                       <div className="border-t pt-4">
                         <h5 className="font-semibold mb-2">Execute Plan</h5>
                         <div className="grid grid-cols-2 gap-4 mb-4">
