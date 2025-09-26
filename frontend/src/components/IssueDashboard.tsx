@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,65 +49,84 @@ export default function IssueDashboard() {
   const [sortOrder, setSortOrder] = useState('asc')
   const pageSize = 100
 
+  const paramsRef = useRef({ owner, name, searchQuery, selectedLabel, sortBy, sortOrder })
+  paramsRef.current = { owner, name, searchQuery, selectedLabel, sortBy, sortOrder }
+
+  const fetchIssues = useCallback(async (loadMore = false) => {
+    const { owner, name, searchQuery, selectedLabel, sortBy, sortOrder } = paramsRef.current
+    if (!owner || !name) return
+
+    try {
+      if (!loadMore) {
+        setLoading(true)
+        setIssues([])
+      } else {
+        setLoadingMore(true)
+      }
+      
+      const params = new URLSearchParams()
+      if (searchQuery) params.append('q', searchQuery)
+      if (selectedLabel) params.append('label', selectedLabel)
+      params.append('page', '1')
+      params.append('pageSize', pageSize.toString())
+      params.append('sort_by', sortBy)
+      params.append('sort_order', sortOrder)
+      if (loadMore) params.append('load_more', 'true')
+      
+      const response = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (loadMore) {
+          setIssues(prev => [...prev, ...data.issues])
+        } else {
+          setIssues(data.issues)
+        }
+        setHasMoreFromGithub(data.has_more_from_github || false)
+        setAllIssuesLoaded(!data.has_more_from_github)
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to fetch issues",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch issues:', error)
+      toast({
+        title: "Error",
+        description: "Failed to connect to backend",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
+    }
+  }, [toast])
+
+  const fetchRepoData = useCallback(async () => {
+    const { owner, name } = paramsRef.current
+    if (!owner || !name) return
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/repos`)
+      if (response.ok) {
+        const repos = await response.json()
+        const repo = repos.find((r: {id: string, owner: string, name: string, url: string}) => r.id === `${owner}/${name}`)
+        if (repo) {
+          setRepoData({ owner: repo.owner, name: repo.name, url: repo.url })
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch repository data:', error)
+    }
+  }, [])
+
   useEffect(() => {
     if (!owner || !name) return
 
-    const fetchIssues = async () => {
-      try {
-        setLoading(true)
-        setIssues([])
-        
-        const params = new URLSearchParams()
-        if (searchQuery) params.append('q', searchQuery)
-        if (selectedLabel) params.append('label', selectedLabel)
-        params.append('page', '1')
-        params.append('pageSize', pageSize.toString())
-        params.append('sort_by', sortBy)
-        params.append('sort_order', sortOrder)
-        
-        const response = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${params}`)
-        if (response.ok) {
-          const data = await response.json()
-          setIssues(data.issues)
-          setHasMoreFromGithub(data.has_more_from_github || false)
-          setAllIssuesLoaded(!data.has_more_from_github)
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to fetch issues",
-            variant: "destructive"
-          })
-        }
-      } catch (error) {
-        console.error('Failed to fetch issues:', error)
-        toast({
-          title: "Error",
-          description: "Failed to connect to backend",
-          variant: "destructive"
-        })
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    const fetchRepoData = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/repos`)
-        if (response.ok) {
-          const repos = await response.json()
-          const repo = repos.find((r: {id: string, owner: string, name: string, url: string}) => r.id === `${owner}/${name}`)
-          if (repo) {
-            setRepoData({ owner: repo.owner, name: repo.name, url: repo.url })
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch repository data:', error)
-      }
-    }
-
     fetchIssues()
     fetchRepoData()
-  }, [owner, name, searchQuery, selectedLabel, sortBy, sortOrder, pageSize])
+  }, [owner, name, searchQuery, selectedLabel, sortBy, sortOrder, fetchIssues, fetchRepoData])
 
   useEffect(() => {
     if (!owner || !name || !hasMoreFromGithub || allIssuesLoaded) return
@@ -116,34 +135,7 @@ export default function IssueDashboard() {
       (entries) => {
         const target = entries[0]
         if (target.isIntersecting && !loadingMore) {
-          const loadMoreIssues = async () => {
-            try {
-              setLoadingMore(true)
-              
-              const params = new URLSearchParams()
-              if (searchQuery) params.append('q', searchQuery)
-              if (selectedLabel) params.append('label', selectedLabel)
-              params.append('page', '1')
-              params.append('pageSize', pageSize.toString())
-              params.append('sort_by', sortBy)
-              params.append('sort_order', sortOrder)
-              params.append('load_more', 'true')
-              
-              const response = await fetch(`${API_BASE_URL}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues?${params}`)
-              if (response.ok) {
-                const data = await response.json()
-                setIssues(prev => [...prev, ...data.issues])
-                setHasMoreFromGithub(data.has_more_from_github || false)
-                setAllIssuesLoaded(!data.has_more_from_github)
-              }
-            } catch (error) {
-              console.error('Failed to load more issues:', error)
-            } finally {
-              setLoadingMore(false)
-            }
-          }
-          
-          loadMoreIssues()
+          fetchIssues(true)
         }
       },
       { threshold: 1.0 }
@@ -159,7 +151,7 @@ export default function IssueDashboard() {
         observer.unobserve(sentinel)
       }
     }
-  }, [owner, name, searchQuery, selectedLabel, sortBy, sortOrder, pageSize, loadingMore, hasMoreFromGithub, allIssuesLoaded])
+  }, [owner, name, hasMoreFromGithub, allIssuesLoaded, loadingMore, fetchIssues])
 
   const resyncRepo = async () => {
     if (!owner || !name) return

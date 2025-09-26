@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 interface SessionData {
   sessionId: string
@@ -63,6 +63,7 @@ export function useSessionManager() {
   const [activeSessions, setActiveSessions] = useState<SessionData[]>([])
   const [sessionDetails, setSessionDetails] = useState<Record<string, DevinSession>>({})
   const [isPolling, setIsPolling] = useState(false)
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const fetchActiveSessions = useCallback(async () => {
     try {
@@ -145,12 +146,12 @@ export function useSessionManager() {
   }, [])
 
   const startPolling = useCallback(() => {
-    if (isPolling) {
+    if (pollingIntervalRef.current) {
       return () => {}
     }
 
     setIsPolling(true)
-    const interval = setInterval(async () => {
+    pollingIntervalRef.current = setInterval(async () => {
       const sessions = await fetchActiveSessions()
       
       for (const session of sessions) {
@@ -161,12 +162,19 @@ export function useSessionManager() {
     }, 10000)
 
     return () => {
-      clearInterval(interval)
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+      }
       setIsPolling(false)
     }
-  }, [fetchActiveSessions, fetchSessionDetails, isPolling])
+  }, [fetchActiveSessions, fetchSessionDetails])
 
   const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+      pollingIntervalRef.current = null
+    }
     setIsPolling(false)
   }, [])
 
@@ -174,7 +182,7 @@ export function useSessionManager() {
     const cleanup = startPolling()
     
     return cleanup
-  }, [startPolling])
+  }, [])
 
   return {
     activeSessions,
