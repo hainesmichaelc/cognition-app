@@ -228,23 +228,28 @@ export default function IssueDashboard() {
     
     if (details?.structured_output) {
       const structuredStatus = details.structured_output.status
-      const sessionStatus = session.status
       prUrl = details.structured_output.pr_url || details.structured_output.response?.pr_url
       
-      if (sessionStatus === 'executing') {
-        displayStatus = 'executing'
-      } else if (structuredStatus === 'scoping') {
+      if (structuredStatus === 'scoping') {
         displayStatus = 'scoping'
       } else if (structuredStatus === 'blocked') {
         displayStatus = 'awaiting-input'
       } else if (structuredStatus === 'executing') {
         displayStatus = 'executing'
-      } else if (structuredStatus === 'completed' || sessionStatus === 'completed') {
+      } else if (structuredStatus === 'completed') {
         displayStatus = 'pr-ready'
-      } else if (sessionStatus === 'running' || sessionStatus === 'scoping') {
+      } else {
         displayStatus = 'scoping'
       }
-    }else if (session.status === 'running' || session.status === 'scoping') {
+    } else if (details) {
+      if (details.status === 'completed') {
+        displayStatus = 'pr-ready'
+      } else if (details.status === 'running') {
+        displayStatus = 'scoping'
+      } else {
+        displayStatus = 'not-scoped'
+      }
+    } else if (session.status === 'running' || session.status === 'scoping') {
       displayStatus = 'scoping'
     }
     
