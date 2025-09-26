@@ -90,6 +90,7 @@ export function useSessionManager() {
   const [issueUpdates, setIssueUpdates] = useState<Record<number, {status: string, prUrl?: string}>>(() => restoreIssueUpdates())
   const [isPolling, setIsPolling] = useState(false)
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const trackedSessionIdsRef = useRef<Set<string>>(new Set())
 
   const fetchActiveSessions = useCallback(async () => {
     try {
@@ -132,11 +133,13 @@ export function useSessionManager() {
         }))
         return sessionData
       } else if (response.status === 404) {
+        trackedSessionIdsRef.current.delete(sessionId)
         setTrackedSessionIds(prev => {
           const newSet = new Set(prev)
           newSet.delete(sessionId)
           return newSet
         })
+        return null
       }
     } catch (error) {
       console.error(`Failed to fetch session details for ${sessionId}:`, error)
@@ -187,25 +190,28 @@ export function useSessionManager() {
     pollingIntervalRef.current = setInterval(async () => {
       const sessions = await fetchActiveSessions()
       
-      sessions.forEach((session: SessionData) => {
+      for (const session of sessions) {
         if (session.sessionId && session.sessionId !== 'null' && session.sessionId !== 'undefined') {
-          setTrackedSessionIds(prev => new Set([...prev, session.sessionId]))
-        }
-      })
-      
-      for (const sessionId of trackedSessionIds) {
-        if (sessionId && sessionId !== 'null' && sessionId !== 'undefined') {
-          const sessionData = await fetchSessionDetails(sessionId)
-          
-          if (sessionData && isTerminalStatus(sessionData.status)) {
-            setTrackedSessionIds(prev => {
-              const newSet = new Set(prev)
-              newSet.delete(sessionId)
-              return newSet
-            })
-          }
+          trackedSessionIdsRef.current.add(session.sessionId)
+          await fetchSessionDetails(session.sessionId)
         }
       }
+      
+      setTrackedSessionIds(new Set(trackedSessionIdsRef.current))
+      
+      const sessionsToRemove: string[] = []
+      for (const sessionId of trackedSessionIdsRef.current) {
+        const sessionData = sessionDetails[sessionId]
+        if (sessionData && isTerminalStatus(sessionData.status)) {
+          sessionsToRemove.push(sessionId)
+        }
+      }
+      
+      sessionsToRemove.forEach(sessionId => {
+        trackedSessionIdsRef.current.delete(sessionId)
+      })
+      
+      setTrackedSessionIds(new Set(trackedSessionIdsRef.current))
     }, 10000)
 
     return () => {
@@ -215,7 +221,7 @@ export function useSessionManager() {
       }
       setIsPolling(false)
     }
-  }, [fetchActiveSessions, fetchSessionDetails, trackedSessionIds])
+  }, [fetchActiveSessions, fetchSessionDetails, sessionDetails])
 
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -255,7 +261,7 @@ export function useSessionManager() {
     const cleanup = startPolling()
     
     return cleanup
-  }, [])
+  }, [startPolling])
 
   return {
     activeSessions,
