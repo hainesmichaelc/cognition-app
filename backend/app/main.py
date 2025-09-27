@@ -283,6 +283,7 @@ class IssueResponse(BaseModel):
 class DevinSessionResponse(BaseModel):
     status: str
     structured_output: Optional[Dict[str, Any]] = None
+    pull_request: Optional[Dict[str, Any]] = None
     url: str
 
 
@@ -1104,6 +1105,7 @@ async def get_devin_session(session_id: str):
 
         status = session_data.get("status", "unknown")
         structured_output = session_data.get("structured_output")
+        pull_request = session_data.get("pull_request")
         
         if structured_output is None:
             messages = session_data.get("messages", [])
@@ -1124,6 +1126,7 @@ async def get_devin_session(session_id: str):
         return DevinSessionResponse(
             status=status,
             structured_output=structured_output,
+            pull_request=pull_request,
             url=url,
         )
 

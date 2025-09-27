@@ -78,6 +78,9 @@ interface DevinSession {
       pr_url?: string
     }
   }
+  pull_request?: {
+    url: string
+  }
   url: string
 }
 
@@ -246,7 +249,7 @@ export function useSessionManager() {
     Object.entries(sessionDetails).forEach(([sessionId, sessionData]) => {
       const session = activeSessions.find(s => s.sessionId === sessionId)
       if (sessionData) {
-        const prUrl = sessionData.structured_output?.pr_url || sessionData.structured_output?.response?.pr_url
+        const prUrl = sessionData.pull_request?.url
         
         const isTaskCompleted = sessionData.structured_output?.status === 'completed' || 
                                sessionData.structured_output?.response?.status === 'completed'
