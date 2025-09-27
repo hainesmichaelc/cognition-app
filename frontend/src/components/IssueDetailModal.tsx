@@ -577,7 +577,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                   ) : (
                     <Play className="mr-2 h-4 w-4" />
                   )}
-                  {isScoping ? 'Starting...' : 'Plan & Execute'}
+                  {isScoping ? 'Starting...' : 'Scope Issue'}
                 </Button>
               </CardContent>
             </Card>
