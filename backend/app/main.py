@@ -280,20 +280,6 @@ class IssueResponse(BaseModel):
     status: str = "open"
 
 
-class PRCreationRequest(BaseModel):
-    title: str
-    body: str
-    head: str
-    base: str
-    issue_number: int
-
-
-class PRResponse(BaseModel):
-    url: str
-    number: int
-    created: bool = True
-
-
 class DevinSessionResponse(BaseModel):
     status: str
     structured_output: Optional[Dict[str, Any]] = None
@@ -555,56 +541,6 @@ async def fetch_all_github_issues(
     """Fetch all open issues (excluding pull requests) from GitHub API using pagination (legacy function)"""
     issues, _ = await fetch_github_issues_batch(client, headers, owner, name)
     return issues
-
-
-async def create_github_pr(
-    owner: str, name: str, github_pat: str, pr_data: PRCreationRequest
-) -> PRResponse:
-    """Create a pull request via GitHub API with automatic issue linking"""
-    async with httpx.AsyncClient() as client:
-        headers = {
-            "Authorization": f"token {github_pat}",
-            "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "Cognition-App/1.0",
-        }
-
-        pr_body = f"{pr_data.body}\n\nCloses #{pr_data.issue_number}"
-
-        payload = {
-            "title": pr_data.title,
-            "body": pr_body,
-            "head": pr_data.head,
-            "base": pr_data.base
-        }
-
-        response = await client.post(
-            f"https://api.github.com/repos/{owner}/{name}/pulls",
-            headers=headers,
-            json=payload
-        )
-
-        if response.status_code == 401:
-            raise HTTPException(status_code=400,
-                                detail="Invalid GitHub Personal Access Token")
-        elif response.status_code == 403:
-            raise HTTPException(status_code=400,
-                                detail="GitHub API rate limit exceeded or "
-                                       "insufficient permissions")
-        elif response.status_code == 422:
-            raise HTTPException(status_code=400,
-                                detail="Pull request creation failed - "
-                                       "check branch names and repository "
-                                       "state")
-        elif response.status_code != 201:
-            raise HTTPException(status_code=400,
-                                detail="Failed to create pull request")
-
-        pr_response = response.json()
-        return PRResponse(
-            url=pr_response["html_url"],
-            number=pr_response["number"]
-        )
-
 
 @app.get("/healthz")
 async def healthz():
@@ -1184,48 +1120,6 @@ async def get_devin_session(session_id: str):
             sessions_store[session_id]["last_accessed"] = datetime.now(
                 timezone.utc)
             sessions_store[session_id]["status"] = status
-
-        if (structured_output and structured_output.get("status") == "completed" and
-            session_id in pr_creation_store and
-                not pr_creation_store[session_id]["pr_created"]):
-
-            try:
-                pr_metadata = pr_creation_store[session_id]
-                repo_data = pr_metadata["repo_data"]
-
-                issue_num = pr_metadata['issue_number']
-                branch_name = pr_metadata['branch_name']
-                target_branch = pr_metadata['target_branch']
-
-                pr_request = PRCreationRequest(
-                    title=f"Fix issue #{issue_num}: Implementation via "
-                          f"Devin AI",
-                    body=f"This PR implements the solution for issue "
-                         f"#{issue_num} as planned and executed by Devin AI."
-                         f"\n\n**Branch**: {branch_name}\n**Target**: "
-                         f"{target_branch}",
-                    head=branch_name,
-                    base=target_branch,
-                    issue_number=issue_num
-                )
-
-                pr_response = await create_github_pr(
-                    repo_data["owner"],
-                    repo_data["name"],
-                    repo_data["githubPat"],
-                    pr_request
-                )
-
-                if structured_output:
-                    structured_output["pr_url"] = pr_response.url
-                else:
-                    structured_output = {"pr_url": pr_response.url}
-
-                pr_creation_store[session_id]["pr_created"] = True
-
-            except Exception as e:
-                print(f"Failed to create PR for session {session_id}: "
-                      f"{str(e)}")
 
         return DevinSessionResponse(
             status=status,
