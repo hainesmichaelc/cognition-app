@@ -89,6 +89,31 @@ const isSessionCompleted = (session: DevinSession | null) => {
   return false
 }
 
+const getSessionDisplayStatus = (session: DevinSession | null) => {
+  if (!session) return 'unknown'
+  
+  if (session.structured_output?.status) {
+    const structuredStatus = session.structured_output.status
+    if (structuredStatus === 'scoping') {
+      return 'Scoping'
+    } else if (structuredStatus === 'blocked') {
+      return 'Awaiting Input'
+    } else if (structuredStatus === 'executing') {
+      return 'Executing'
+    } else if (structuredStatus === 'completed') {
+      return 'Completed'
+    } else {
+      return 'Scoping'
+    }
+  } else if (session.status === 'completed') {
+    return 'Completed'
+  } else if (session.status === 'running') {
+    return 'Scoping'
+  } else {
+    return 'Scoping'
+  }
+}
+
 export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: IssueDetailModalProps) {
   const [additionalContext, setAdditionalContext] = useState('')
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
@@ -586,7 +611,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                   </a>
                 </CardTitle>
                 <CardDescription>
-                  Session Status: {session.status}
+                  Session Status: {getSessionDisplayStatus(session)}
                   {session.structured_output && (
                     <>
                       {' • '}
@@ -669,7 +694,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                             <div key={`action-${step.step}`} className="flex items-start gap-2">
                               {step.done ? (
                                 <CheckCircle className="h-4 w-4 mt-1 text-green-500" />
-                              ) : isCurrentStep && session.status === 'running' && !isSessionCompleted(session) ? (
+                              ) : isCurrentStep && session.status === 'running' && !isSessionCompleted(session) && session.structured_output?.status === 'executing' ? (
                                 <Loader2 className="h-4 w-4 mt-1 animate-spin text-blue-600" />
                               ) : (
                                 <CheckCircle className="h-4 w-4 mt-1 text-gray-300" />
