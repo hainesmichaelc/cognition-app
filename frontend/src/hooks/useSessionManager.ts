@@ -251,7 +251,8 @@ export function useSessionManager() {
       if (sessionData) {
         const prUrl = sessionData.pull_request?.url
         
-        const isTaskCompleted = sessionData.structured_output?.status === 'completed' || 
+        const isTaskCompleted = sessionData.status === 'finished' || 
+                               sessionData.structured_output?.status === 'completed' ||
                                sessionData.structured_output?.response?.status === 'completed'
         
         if (isTaskCompleted && prUrl) {
