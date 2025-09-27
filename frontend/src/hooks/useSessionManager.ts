@@ -215,7 +215,7 @@ export function useSessionManager() {
       })
       
       setTrackedSessionIds(new Set(trackedSessionIdsRef.current))
-    }, 10000)
+    }, 30000)
 
     return () => {
       if (pollingIntervalRef.current) {
