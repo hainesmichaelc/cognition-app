@@ -223,7 +223,7 @@ export default function IssueDashboard() {
     
     const details = sessionDetails[session.sessionId]
     
-    let displayStatus = 'not-scoped'
+    let displayStatus = 'scoping'
     let prUrl = null
     
     if (details?.structured_output) {
@@ -247,7 +247,7 @@ export default function IssueDashboard() {
       } else if (details.status === 'running') {
         displayStatus = 'scoping'
       } else {
-        displayStatus = 'not-scoped'
+        displayStatus = 'scoping'
       }
     } else if (session.status === 'running' || session.status === 'scoping') {
       displayStatus = 'scoping'

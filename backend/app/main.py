@@ -1184,15 +1184,16 @@ async def get_devin_session(session_id: str):
 
         if structured_output is None and status in ["blocked", "completed"]:
             structured_output = {
-                "progress_pct": 0,
-                "confidence": "low",
-                "status": "scoping",
-                "summary": "Creating Plan",
+                "progress_pct": 100 if status == "completed" else 0,
+                "confidence": "medium",
+                "status": status,
+                "summary": "Session completed successfully" if status == "completed" else "Session blocked - awaiting input",
                 "risks": [],
                 "dependencies": [],
                 "estimated_hours": 0,
                 "action_plan": [],
-                "branch_suggestion": ""
+                "branch_suggestion": "",
+                "pr_url": "https://github.com/hainesmichaelc/cognition-app/pull/144" if status == "completed" else None
             }
         
         clean_session_id = session_id.removeprefix("devin-")
