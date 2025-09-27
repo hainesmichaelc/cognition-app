@@ -262,7 +262,7 @@ export default function IssueDashboard() {
     }
   }
 
-  const getSessionStatusBadge = (status: string, prUrl?: string) => {
+  const getSessionStatusBadge = (status: string) => {
     switch (status) {
       case 'not-scoped':
         return (
@@ -292,28 +292,12 @@ export default function IssueDashboard() {
           </Badge>
         )
       case 'pr-ready':
-        if (prUrl) {
-          return (
-            <a
-              href={prUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center"
-            >
-              <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer">
-                <CheckCircle className="mr-1 h-3 w-3" />
-                PR Ready
-              </Badge>
-            </a>
-          )
-        } else {
-          return (
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              <CheckCircle className="mr-1 h-3 w-3" />
-              PR Ready
-            </Badge>
-          )
-        }
+        return (
+          <Badge variant="secondary" className="bg-green-100 text-green-800">
+            <CheckCircle className="mr-1 h-3 w-3" />
+            Completed
+          </Badge>
+        )
       default:
         return null
     }
@@ -450,7 +434,7 @@ export default function IssueDashboard() {
                       <TableCell>
                         {sessionStatus ? (
                           <div className="flex items-center gap-2">
-                            {getSessionStatusBadge(sessionStatus.status, sessionStatus.prUrl)}
+                            {getSessionStatusBadge(sessionStatus.status)}
                             {sessionStatus.status !== 'not-scoped' && sessionStatus.url && (
                               <a
                                 href={sessionStatus.url}
