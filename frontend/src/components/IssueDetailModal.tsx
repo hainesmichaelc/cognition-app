@@ -483,8 +483,8 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
 
           <div>
             <h4 className="font-semibold mb-2">Description</h4>
-            <div className="bg-gray-50 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
-              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md prose-ul:space-y-1 prose-ol:space-y-1 prose-li:marker:text-gray-600">
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
+              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md prose-ul:space-y-1 prose-ol:space-y-1 prose-li:marker:text-gray-600 dark:prose-invert">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
@@ -515,8 +515,8 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       const {className} = props;
                       const isInline = !className || !className.includes('language-');
                       return isInline ?
-                        <code {...props} className="bg-gray-200 px-1 py-0.5 rounded text-sm" /> :
-                        <code {...props} className="block bg-gray-200 p-2 rounded text-sm overflow-x-auto" />
+                        <code {...props} className="bg-gray-200 dark:bg-gray-700 dark:text-gray-200 px-1 py-0.5 rounded text-sm" /> :
+                        <code {...props} className="block bg-gray-200 dark:bg-gray-700 dark:text-gray-200 p-2 rounded text-sm overflow-x-auto" />
                     }
                   }}
                 >
@@ -547,12 +547,12 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                         const files = Array.from(e.target.files || [])
                         setUploadedFiles(files)
                       }}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-300 dark:hover:file:bg-blue-800"
                     />
                     {uploadedFiles.length > 0 && (
                       <div className="mt-2 space-y-1">
                         {uploadedFiles.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                          <div key={index} className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded">
                             <span>{file.name} ({(file.size / 1024).toFixed(1)} KB)</span>
                             <button
                               onClick={() => {
@@ -709,7 +709,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                     </div>
 
                     {session.structured_output?.status === 'blocked' && !isPlanApproved && session.structured_output?.confidence !== 'high' && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <Clock className="h-5 w-5 text-blue-600" />
                           <h5 className="font-semibold text-blue-800">Plan Review Required</h5>
@@ -746,7 +746,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                     )}
 
                     {session.structured_output?.status === 'blocked' && session.structured_output?.confidence === 'high' && !isPlanApproved && (
-                      <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <Loader2 className="h-5 w-5 text-green-600 animate-spin" />
                           <h5 className="font-semibold text-green-800">Auto-Executing High Confidence Plan</h5>
@@ -758,7 +758,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                     )}
 
                     {isSessionCompleted(session) && !isPlanApproved && !session.pull_request?.url && (session.structured_output?.confidence || session.structured_output?.response?.confidence) !== 'high' && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <CheckCircle className="h-5 w-5 text-blue-600" />
                           <h5 className="font-semibold text-blue-800">Plan Review Required</h5>
@@ -768,7 +768,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                         </p>
                         <AlertDialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
                           <AlertDialogTrigger asChild>
-                            <Button className="bg-green-600 hover:bg-green-700">
+                            <Button className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600">
                               <CheckCircle className="mr-2 h-4 w-4" />
                               Approve & Execute Plan
                             </Button>
@@ -795,7 +795,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                     )}
 
                     {isPlanApproved && !session.pull_request?.url && (
-                      <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-3">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
                           <span className="text-sm font-medium text-green-800">Plan Approved - Ready for Execution</span>
@@ -805,7 +805,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
 
 
                     {session.pull_request?.url && (
-                      <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <CheckCircle className="h-5 w-5 text-green-600" />
                           <h5 className="font-semibold text-green-800">Execution Complete!</h5>
@@ -829,7 +829,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
 
                 {/* Follow-up message UI - always available for active sessions */}
                 {session.status === 'running' && !isSessionCompleted(session) && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3 mb-4">
                     <div className="flex items-start gap-2">
                       <MessageSquare className="h-4 w-4 text-blue-600 mt-0.5" />
                       <div className="text-sm text-blue-700">
