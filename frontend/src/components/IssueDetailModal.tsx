@@ -447,7 +447,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
               href={repoData ? `${repoData.url}/issues/${issue.number}` : '#'}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800"
+              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
             >
               <ExternalLink className="h-4 w-4" />
             </a>
@@ -457,7 +457,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
               href={`https://github.com/${issue.author}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
+              className="text-blue-600 hover:underline dark:text-blue-400"
             >
               {issue.author}
             </a> • {issue.age_days} days ago
@@ -475,15 +475,15 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
 
           <div>
             <h4 className="font-semibold mb-2">Description</h4>
-            <div className="bg-gray-50 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
-              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md prose-ul:space-y-1 prose-ol:space-y-1 prose-li:marker:text-gray-600">
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
+              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md prose-ul:space-y-1 prose-ol:space-y-1 prose-li:marker:text-gray-600 dark:prose-li:marker:text-gray-400 dark:prose-invert">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
                     img: (props) => (
                       <img
                         {...props}
-                        className="max-w-full h-auto rounded-md border border-gray-200 shadow-sm my-4"
+                        className="max-w-full h-auto rounded-md border border-gray-200 dark:border-gray-600 shadow-sm my-4"
                         style={{maxHeight: '400px', objectFit: 'contain'}}
                         loading="lazy"
                         onError={(e) => {
@@ -501,14 +501,14 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       <li {...props} className="ml-4" />
                     ),
                     a: (props) => (
-                      <a {...props} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer" />
+                      <a {...props} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer" />
                     ),
                     code: (props) => {
                       const {className} = props;
                       const isInline = !className || !className.includes('language-');
                       return isInline ?
-                        <code {...props} className="bg-gray-200 px-1 py-0.5 rounded text-sm" /> :
-                        <code {...props} className="block bg-gray-200 p-2 rounded text-sm overflow-x-auto" />
+                        <code {...props} className="bg-gray-200 dark:bg-gray-700 dark:text-gray-200 px-1 py-0.5 rounded text-sm" /> :
+                        <code {...props} className="block bg-gray-200 dark:bg-gray-700 dark:text-gray-200 p-2 rounded text-sm overflow-x-auto" />
                     }
                   }}
                 >
@@ -539,7 +539,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                         const files = Array.from(e.target.files || [])
                         setUploadedFiles(files)
                       }}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-200 dark:hover:file:bg-blue-800"
                     />
                     {uploadedFiles.length > 0 && (
                       <div className="mt-2 space-y-1">
@@ -590,14 +590,14 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                   <div className="flex items-center gap-2">
                     Devin Analysis
                     {isPolling && !isSessionCompleted(session) && session.status !== 'new' && (
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
                     )}
                   </div>
                   <a
                     href={session.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800"
+                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                   >
                     <ExternalLink className="h-4 w-4" />
                   </a>
@@ -619,7 +619,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                         href={session.pull_request.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
                       >
                         <ExternalLink className="h-3 w-3" />
                         PR
@@ -687,7 +687,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                               {step.done ? (
                                 <CheckCircle className="h-4 w-4 mt-1 text-green-500" />
                               ) : isCurrentStep && session.status === 'running' && !isSessionCompleted(session) && session.structured_output?.status === 'executing' ? (
-                                <Loader2 className="h-4 w-4 mt-1 animate-spin text-blue-600" />
+                                <Loader2 className="h-4 w-4 mt-1 animate-spin text-blue-600 dark:text-blue-400" />
                               ) : (
                                 <CheckCircle className="h-4 w-4 mt-1 text-gray-300" />
                               )}
@@ -701,10 +701,10 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                     </div>
 
                     {session.structured_output?.status === 'blocked' && !isPlanApproved && session.structured_output?.confidence !== 'high' && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                      <div className="bg-blue-50 border border-blue-200 rounded-md p-4 dark:bg-blue-900 dark:border-blue-800">
                         <div className="flex items-center gap-2 mb-3">
-                          <Clock className="h-5 w-5 text-blue-600" />
-                          <h5 className="font-semibold text-blue-800">Plan Review Required</h5>
+                          <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                          <h5 className="font-semibold text-blue-800 dark:text-blue-200">Plan Review Required</h5>
                         </div>
                         <p className="text-sm text-blue-700 mb-4">
                           Please review the implementation plan above and choose how to proceed:
