@@ -1222,6 +1222,9 @@ Once the PR has been created, you can update your status to "completed" and add 
 PR link to the structured output."""
 
     try:
+        approval_message = "APPROVE: proceed with step 1. If risks exist, call them out first."
+        await devin_api.send_message(request.sessionId, approval_message)
+        
         await devin_api.send_message(request.sessionId, execution_prompt)
 
         pr_creation_store[request.sessionId] = {
