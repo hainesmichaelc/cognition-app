@@ -476,7 +476,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
           <div>
             <h4 className="font-semibold mb-2">Description</h4>
             <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
-              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md prose-ul:space-y-1 prose-ol:space-y-1 prose-li:marker:text-gray-600 dark:prose-li:marker:text-gray-400 dark:prose-invert">
+              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md prose-ul:space-y-1 prose-ol:space-y-1 prose-li:marker:text-gray-600 dark:prose-invert dark:prose-li:marker:text-gray-400">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
