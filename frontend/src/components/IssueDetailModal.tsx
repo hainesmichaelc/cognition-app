@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
@@ -133,8 +133,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
   const { toast } = useToast()
   const { getIssueSession, fetchSessionDetails, sessionDetails, isPolling, fetchActiveSessions, updateIssueStatus } = useSessionManager()
 
-  const autoExecutionAttemptedRef = useRef(false)
-
   useEffect(() => {
     if (session?.structured_output?.branch_suggestion && !branchName) {
       setBranchName(session.structured_output.branch_suggestion)
@@ -177,7 +175,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
       setSession(null)
       setIsPlanApproved(false)
       setIsExecuting(false)
-      autoExecutionAttemptedRef.current = false // Reset auto-execution flag
     }
   }, [issue?.id])
 
@@ -189,11 +186,8 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
       !isPlanApproved &&
       !isExecuting &&
       sessionId &&
-      issue &&
-      !autoExecutionAttemptedRef.current
+      issue
     ) {
-      autoExecutionAttemptedRef.current = true
-
       const executeHighConfidencePlan = async () => {
         const suggestedBranch = session.structured_output!.branch_suggestion
         setBranchName(suggestedBranch)
@@ -222,7 +216,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
             })
           } else {
             setIsPlanApproved(false)
-            autoExecutionAttemptedRef.current = false
             toast({
               title: "Auto-execution failed",
               description: "Please approve manually",
@@ -231,7 +224,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
           }
         } catch {
           setIsPlanApproved(false)
-          autoExecutionAttemptedRef.current = false
           toast({
             title: "Auto-execution failed",
             description: "Please approve manually",
@@ -861,7 +853,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                   </Button>
                 </div>
 
-                    {isPlanApproved && !autoExecutionAttemptedRef.current && !session.pull_request?.url && (
+                    {isPlanApproved && !session.pull_request?.url && (
                       <div className="border-t pt-4">
                         <h5 className="font-semibold mb-2">Execute Plan</h5>
                         <div className="grid grid-cols-2 gap-4 mb-4">
