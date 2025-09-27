@@ -228,7 +228,7 @@ export default function IssueDashboard() {
     
     if (details?.structured_output) {
       const structuredStatus = details.structured_output.status
-      prUrl = details.structured_output.pr_url || details.structured_output.response?.pr_url
+      prUrl = details.pull_request?.url
       
       if (structuredStatus === 'scoping') {
         displayStatus = 'scoping'

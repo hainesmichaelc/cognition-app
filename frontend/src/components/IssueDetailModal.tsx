@@ -59,6 +59,9 @@ interface DevinSession {
       pr_url?: string
     }
   }
+  pull_request?: {
+    url: string
+  }
   url: string
 }
 
@@ -136,7 +139,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
       const sessionData = sessionDetails[sessionId]
       setSession(sessionData)
 
-      const prUrl = sessionData.structured_output?.pr_url || sessionData.structured_output?.response?.pr_url
+      const prUrl = sessionData.pull_request?.url
       if ((sessionData.status === 'completed' || sessionData.structured_output?.response?.status === 'completed') && prUrl && issue) {
         updateIssueStatus(issue.id, 'PR Submitted', prUrl)
       }
@@ -592,11 +595,11 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       </span>
                     </>
                   )}
-                  {(session.structured_output?.pr_url || session.structured_output?.response?.pr_url) && (
+                  {session.pull_request?.url && (
                     <>
                       {' • '}
                       <a
-                        href={session.structured_output?.pr_url || session.structured_output?.response?.pr_url}
+                        href={session.pull_request.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
@@ -729,7 +732,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       </div>
                     )}
 
-                    {isSessionCompleted(session) && !isPlanApproved && !(session.structured_output?.pr_url || session.structured_output?.response?.pr_url) && (session.structured_output?.confidence || session.structured_output?.response?.confidence) !== 'high' && (
+                    {isSessionCompleted(session) && !isPlanApproved && !session.pull_request?.url && (session.structured_output?.confidence || session.structured_output?.response?.confidence) !== 'high' && (
                       <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <CheckCircle className="h-5 w-5 text-blue-600" />
@@ -766,7 +769,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       </div>
                     )}
 
-                    {isPlanApproved && !(session.structured_output?.pr_url || session.structured_output?.response?.pr_url) && (
+                    {isPlanApproved && !session.pull_request?.url && (
                       <div className="bg-green-50 border border-green-200 rounded-md p-3">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
@@ -776,7 +779,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                     )}
 
 
-                    {(session.structured_output?.pr_url || session.structured_output?.response?.pr_url) && (
+                    {session.pull_request?.url && (
                       <div className="bg-green-50 border border-green-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <CheckCircle className="h-5 w-5 text-green-600" />
@@ -786,7 +789,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                           Your pull request has been created successfully.
                         </p>
                         <a
-                          href={session.structured_output?.pr_url || session.structured_output?.response?.pr_url}
+                          href={session.pull_request.url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
@@ -833,7 +836,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                   </Button>
                 </div>
 
-                    {isPlanApproved && !autoExecutionAttemptedRef.current && !(session.structured_output?.pr_url || session.structured_output?.response?.pr_url) && (
+                    {isPlanApproved && !autoExecutionAttemptedRef.current && !session.pull_request?.url && (
                       <div className="border-t pt-4">
                         <h5 className="font-semibold mb-2">Execute Plan</h5>
                         <div className="grid grid-cols-2 gap-4 mb-4">
