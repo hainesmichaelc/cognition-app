@@ -232,8 +232,6 @@ export default function IssueDashboard() {
       
       if (structuredStatus === 'scoping') {
         displayStatus = 'scoping'
-      } else if (structuredStatus === 'blocked') {
-        displayStatus = 'awaiting-input'
       } else if (structuredStatus === 'executing') {
         displayStatus = 'executing'
       } else if (structuredStatus === 'completed') {
@@ -242,7 +240,9 @@ export default function IssueDashboard() {
         displayStatus = 'scoping'
       }
     } else if (details) {
-      if (details.status === 'completed') {
+      if (details.status === 'blocked') {
+        displayStatus = 'awaiting-input'
+      } else if (details.status === 'completed') {
         displayStatus = 'pr-ready'
       } else if (details.status === 'running') {
         displayStatus = 'scoping'

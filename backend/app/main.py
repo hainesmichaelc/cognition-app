@@ -1024,11 +1024,11 @@ Here is the issue date for the current planning task:
 The developer had the option to supply additioal context as well. Here it is:
 {combined_context}
 
-Please produce and keep updated a Structured Output JSON with the following schema \
-{{
+Please produce and keep updated a Structured Output JSON with the following \
+schema {{
   "progress_pct": 0-100%,
   "confidence": "low|medium|high",
-  "status": "scoping|blocked|executing|completed",
+  "status": "scoping|executing|completed",
   "summary": "one-paragraph implementation plan",
   "risks": ["risk1", "risk2", "etc."],
   "dependencies": ["dependency1", "dependency2", "etc."],
@@ -1053,15 +1053,16 @@ planning or execution.
 
 Status transitions:
 - Output "scoping" status while actively analyzing and creating the plan
-- Output "blocked" status when your plan is complete but you are waiting for human review/approval
 - Output "executing" status while you are implementing your plan
 - Output "completed" status when you are finished with your implementation
 
 Additional Guidelines:
-- After planning completes, do NOT begin the implementation. Set status to "blocked" \
-and set progress to 100%
-- Do NOT make code changes, create branches, or open PRs during the planning phase
-- Focus on thorough analysis and detailed planning to give confidence in your strategy
+- After planning completes, do NOT begin the implementation. Wait for human \
+approval and set progress to 100%
+- Do NOT make code changes, create branches, or open PRs during the planning \
+phase
+- Focus on thorough analysis and detailed planning to give confidence in your \
+strategy
 - Include architecture considerations and test strategy
 - The pr_url output will be null until after the execution phase."""
 
