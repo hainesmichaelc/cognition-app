@@ -1,5 +1,7 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, HttpUrl
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta, timezone
@@ -23,6 +25,46 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Convert Pydantic validation errors to user-friendly 400 responses"""
+    errors = exc.errors()
+    
+    for error in errors:
+        if (error.get("loc") == ["body", "repoUrl"] and 
+            error.get("type") == "url_parsing"):
+            input_value = error.get("input", "")
+            
+            if isinstance(input_value, str):
+                if input_value.startswith(("ghp_", "github_pat_")):
+                    return JSONResponse(
+                        status_code=400,
+                        content={
+                            "detail": "This appears to be a Personal Access Token, not a repository URL. Please enter a GitHub repository URL like: https://github.com/owner/repo"
+                        }
+                    )
+                elif not input_value.startswith("http"):
+                    return JSONResponse(
+                        status_code=400,
+                        content={
+                            "detail": "Repository URL must start with https://. Please enter a valid GitHub repository URL like: https://github.com/owner/repo"
+                        }
+                    )
+            
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "detail": "Invalid repository URL format. Please enter a valid GitHub repository URL like: https://github.com/owner/repo"
+                }
+            )
+    
+    return JSONResponse(
+        status_code=400,
+        content={
+            "detail": "Invalid input data. Please check your entries and try again."
+        }
+    )
 
 
 async def periodic_structured_output_updates():
