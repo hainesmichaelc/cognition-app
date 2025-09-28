@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useSessionManager } from '@/hooks/useSessionManager'
 import IssueDetailModal from './IssueDetailModal'
 import { SearchFilterWarning } from './SearchFilterWarning'
+import { getSessionDisplayStatus, DISPLAY_STATUS } from '@/utils/sessionStatusUtils'
 
 interface Issue {
   id: number
@@ -222,36 +223,8 @@ export default function IssueDashboard() {
     if (!session) return null
     
     const details = sessionDetails[session.sessionId]
-    
-    let displayStatus = 'scoping'
-    let prUrl = null
-    
-    if (details?.structured_output) {
-      const structuredStatus = details.structured_output.status
-      prUrl = details.pull_request?.url
-      
-      if (structuredStatus === 'scoping') {
-        displayStatus = 'scoping'
-      } else if (structuredStatus === 'executing') {
-        displayStatus = 'executing'
-      } else if (structuredStatus === 'completed') {
-        displayStatus = 'pr-ready'
-      } else {
-        displayStatus = 'scoping'
-      }
-    } else if (details) {
-      if (details.status === 'blocked') {
-        displayStatus = 'awaiting-input'
-      } else if (details.status === 'completed') {
-        displayStatus = 'pr-ready'
-      } else if (details.status === 'running') {
-        displayStatus = 'scoping'
-      } else {
-        displayStatus = 'scoping'
-      }
-    } else if (session.status === 'running' || session.status === 'scoping') {
-      displayStatus = 'scoping'
-    }
+    const displayStatus = getSessionDisplayStatus(details)
+    const prUrl = details?.pull_request?.url
     
     return {
       sessionId: session.sessionId,
@@ -264,34 +237,34 @@ export default function IssueDashboard() {
 
   const getSessionStatusBadge = (status: string) => {
     switch (status) {
-      case 'not-scoped':
+      case DISPLAY_STATUS.NOT_SCOPED:
         return (
           <Badge variant="secondary" className="bg-gray-100 text-gray-800">
             Not Scoped
           </Badge>
         )
-      case 'scoping':
+      case DISPLAY_STATUS.SCOPING:
         return (
           <Badge variant="secondary" className="bg-blue-100 text-blue-800">
             <Loader2 className="mr-1 h-3 w-3 animate-spin" />
             Scoping
           </Badge>
         )
-      case 'awaiting-input':
+      case DISPLAY_STATUS.AWAITING_INPUT:
         return (
           <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
             <AlertTriangle className="mr-1 h-3 w-3" />
             Awaiting Input
           </Badge>
         )
-      case 'executing':
+      case DISPLAY_STATUS.EXECUTING:
         return (
           <Badge variant="secondary" className="bg-orange-100 text-orange-800">
             <Clock className="mr-1 h-3 w-3" />
             Executing
           </Badge>
         )
-      case 'pr-ready':
+      case DISPLAY_STATUS.PR_READY:
         return (
           <Badge variant="secondary" className="bg-green-100 text-green-800">
             <CheckCircle className="mr-1 h-3 w-3" />
@@ -435,7 +408,7 @@ export default function IssueDashboard() {
                         {sessionStatus ? (
                           <div className="flex items-center gap-2">
                             {getSessionStatusBadge(sessionStatus.status)}
-                            {sessionStatus.status !== 'not-scoped' && sessionStatus.url && (
+                            {sessionStatus.status !== DISPLAY_STATUS.NOT_SCOPED && sessionStatus.url && (
                               <a
                                 href={sessionStatus.url}
                                 target="_blank"
