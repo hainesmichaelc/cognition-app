@@ -475,15 +475,15 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
 
           <div>
             <h4 className="font-semibold mb-2">Description</h4>
-            <div className="bg-gray-50 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
-              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md prose-ul:space-y-1 prose-ol:space-y-1 prose-li:marker:text-gray-600">
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
+              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md prose-ul:space-y-1 prose-ol:space-y-1 prose-li:marker:text-gray-600 dark:prose-invert dark:prose-li:marker:text-gray-400">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
                     img: (props) => (
                       <img
                         {...props}
-                        className="max-w-full h-auto rounded-md border border-gray-200 shadow-sm my-4"
+                        className="max-w-full h-auto rounded-md border border-gray-200 dark:border-gray-600 shadow-sm my-4"
                         style={{maxHeight: '400px', objectFit: 'contain'}}
                         loading="lazy"
                         onError={(e) => {
@@ -501,14 +501,14 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       <li {...props} className="ml-4" />
                     ),
                     a: (props) => (
-                      <a {...props} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer" />
+                      <a {...props} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer" />
                     ),
                     code: (props) => {
                       const {className} = props;
                       const isInline = !className || !className.includes('language-');
                       return isInline ?
-                        <code {...props} className="bg-gray-200 px-1 py-0.5 rounded text-sm" /> :
-                        <code {...props} className="block bg-gray-200 p-2 rounded text-sm overflow-x-auto" />
+                        <code {...props} className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm" /> :
+                        <code {...props} className="block bg-gray-200 dark:bg-gray-700 p-2 rounded text-sm overflow-x-auto" />
                     }
                   }}
                 >
