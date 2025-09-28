@@ -327,13 +327,13 @@ export default function IssueDashboard() {
 
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Issue Dashboard</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Issue Dashboard</h2>
           {repoData && (
-            <p className="text-lg text-muted-foreground mb-2">
+            <p className="text-lg text-muted-foreground dark:text-gray-400 mb-2">
               {repoData.owner}/{repoData.name}
             </p>
           )}
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground dark:text-gray-400">
             Manage and triage repository issues
             {activeSessions.length > 0 && (
               <span className="ml-2">
@@ -366,7 +366,7 @@ export default function IssueDashboard() {
             </div>
             <div className="flex-1">
               <select
-                className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                className="w-full px-3 py-2 border border-input bg-background dark:bg-gray-800 dark:text-white dark:border-gray-600 rounded-md"
                 value={selectedLabel}
                 onChange={(e) => setSelectedLabel(e.target.value)}
               >
@@ -378,7 +378,7 @@ export default function IssueDashboard() {
             </div>
             <div className="flex-1">
               <select
-                className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                className="w-full px-3 py-2 border border-input bg-background dark:bg-gray-800 dark:text-white dark:border-gray-600 rounded-md"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
@@ -390,7 +390,7 @@ export default function IssueDashboard() {
             </div>
             <div className="flex-1">
               <select
-                className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                className="w-full px-3 py-2 border border-input bg-background dark:bg-gray-800 dark:text-white dark:border-gray-600 rounded-md"
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value)}
               >
