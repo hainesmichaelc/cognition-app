@@ -193,12 +193,14 @@ export function useSessionManager() {
     pollingIntervalRef.current = setInterval(async () => {
       const sessions = await fetchActiveSessions()
       
-      for (const session of sessions) {
-        if (session.sessionId && session.sessionId !== 'null' && session.sessionId !== 'undefined') {
+      const sessionPromises = sessions
+        .filter((session: SessionData) => session.sessionId && session.sessionId !== 'null' && session.sessionId !== 'undefined')
+        .map(async (session: SessionData) => {
           trackedSessionIdsRef.current.add(session.sessionId)
-          await fetchSessionDetails(session.sessionId)
-        }
-      }
+          return await fetchSessionDetails(session.sessionId)
+        })
+      
+      await Promise.all(sessionPromises)
       
       setTrackedSessionIds(new Set(trackedSessionIdsRef.current))
       
@@ -215,7 +217,7 @@ export function useSessionManager() {
       })
       
       setTrackedSessionIds(new Set(trackedSessionIdsRef.current))
-    }, 30000)
+    }, 10000)
 
     return () => {
       if (pollingIntervalRef.current) {
