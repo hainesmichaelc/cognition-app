@@ -156,13 +156,13 @@ export default function RepoNavigator() {
           })
         }
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to connect to backend. Please check your internet connection and try again.",
         variant: "destructive"
       })
-    }finally {
+    } finally {
       setConnecting(false)
     }
   }
@@ -207,8 +207,8 @@ export default function RepoNavigator() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Repository Navigator</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Repository Navigator</h2>
+          <p className="text-muted-foreground dark:text-gray-400">
             Connect and manage your GitHub repositories
           </p>
         </div>
@@ -280,8 +280,8 @@ export default function RepoNavigator() {
         <Card className="text-center py-12">
           <CardContent>
             <div className="mx-auto max-w-sm">
-              <h3 className="text-lg font-semibold">No repositories connected</h3>
-              <p className="text-muted-foreground mt-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">No repositories connected</h3>
+              <p className="text-muted-foreground dark:text-gray-400 mt-2">
                 Connect your first GitHub repository to get started with issue automation
               </p>
               <Button

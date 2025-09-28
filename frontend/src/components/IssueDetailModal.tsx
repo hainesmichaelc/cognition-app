@@ -507,8 +507,8 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       const {className} = props;
                       const isInline = !className || !className.includes('language-');
                       return isInline ?
-                        <code {...props} className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm" /> :
-                        <code {...props} className="block bg-gray-200 dark:bg-gray-700 p-2 rounded text-sm overflow-x-auto" />
+                        <code {...props} className="bg-gray-200 dark:bg-gray-700 dark:text-gray-200 px-1 py-0.5 rounded text-sm" /> :
+                        <code {...props} className="block bg-gray-200 dark:bg-gray-700 dark:text-gray-200 p-2 rounded text-sm overflow-x-auto" />
                     }
                   }}
                 >
