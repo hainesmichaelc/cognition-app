@@ -1104,7 +1104,7 @@ async def get_devin_session(session_id: str):
     try:
         session_data = await devin_api.get_session(session_id)
 
-        status = session_data.get("status", "unknown")
+        status = session_data.get("status_enum") or session_data.get("status", "unknown")
         structured_output = session_data.get("structured_output")
         pull_request = session_data.get("pull_request")
         
