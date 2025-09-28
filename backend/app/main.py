@@ -1148,15 +1148,30 @@ async def get_devin_session(session_id: str):
     try:
         session_data = await devin_api.get_session(session_id)
 
-        status = session_data.get("status_enum") or session_data.get("status", "unknown")
-        structured_output = session_data.get("structured_output")
-        pull_request = session_data.get("pull_request")
+        api_status = session_data.get("status", "unknown")
+        api_status_enum = session_data.get("status_enum")
         
+        structured_output = session_data.get("structured_output")
+        status = api_status
+        
+        if structured_output and isinstance(structured_output, dict):
+            structured_status = structured_output.get("status")
+            if structured_status:
+                status = structured_status
+        elif api_status_enum:
+            status = api_status_enum
+            
         if structured_output is None:
             messages = session_data.get("messages", [])
-            structured_output = extract_structured_output_from_messages(
-                messages
-            )
+            extracted_output = extract_structured_output_from_messages(messages)
+            if extracted_output:
+                structured_output = extracted_output
+                extracted_status = extracted_output.get("status")
+                if extracted_status:
+                    status = extracted_status
+        
+        if api_status != api_status_enum and api_status_enum:
+            print(f"Status discrepancy for session {session_id}: status='{api_status}', status_enum='{api_status_enum}', final_status='{status}'")
         
         clean_session_id = session_id.removeprefix("devin-")
         url = session_data.get(
@@ -1171,7 +1186,7 @@ async def get_devin_session(session_id: str):
         return DevinSessionResponse(
             status=status,
             structured_output=structured_output,
-            pull_request=pull_request,
+            pull_request=session_data.get("pull_request"),
             url=url,
         )
 
