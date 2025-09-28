@@ -1025,7 +1025,8 @@ The developer had the option to supply additioal context as well. Here it is:
 {combined_context}
 
 Please produce and keep updated a Structured Output JSON with the following \
-schema {{
+schema:
+{{
   "progress_pct": 0-100%,
   "confidence": "low|medium|high",
   "status": "scoping|executing|completed",
@@ -1046,10 +1047,7 @@ situations where the user has applied additional context. After the planning \
 phase completes, update your structured output every time you complete a \
 step in the implementation your plan, or if you need to alter the plan.
 
-Progress output:
-- Progress should measure against completion of the current task at hand, either \
-planning or execution.
-- The UI that renders depends on both the progress and the status of the output
+
 
 Status transitions:
 - Output "scoping" status while actively analyzing and creating the plan
@@ -1057,6 +1055,10 @@ Status transitions:
 - Output "completed" status when you are finished with your implementation
 
 Additional Guidelines:
+- The UI depends on the values in the structured output. Do NOT alter the schema.
+- `progress_pct` should measure against completion of the current task at hand, either \
+planning or execution.
+- The UI that renders depends on both the fields in the structured output, so it i
 - After planning completes, do NOT begin the implementation. Wait for human \
 approval and set progress to 100%
 - Do NOT make code changes, create branches, or open PRs during the planning \
@@ -1215,11 +1217,11 @@ following our PR template (devin_pr_template.md), including:
   - **IMPORTANT**: Include "Closes #{issue_number}" in the PR description \
 to automatically link and close the issue when merged
 
-Update your structured output status to "executing", as you have now moved out \
-of the planning phase and into the "executing phase.
+Update your structured output `status` to "executing", as you have now moved out \
+of the planning phase.
 
 As you make more updates, make sure you update your structured output from the \
-original prompt provide a status update each time you complete a task, or each time \
+original prompt to provide a status update each time you complete a task, or each time \
 you need to change the plan.
 
 Once the PR has been created, you can update your status to "completed" and add the \
