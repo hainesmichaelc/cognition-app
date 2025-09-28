@@ -210,6 +210,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
           })
 
           if (response.ok) {
+            setIsPlanApproved(false)
             toast({
               title: "Auto-Execution Started",
               description: "High confidence plan approved and execution started automatically"
@@ -388,6 +389,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
       if (response.ok) {
         const data = await response.json()
         setSessionId(data.sessionId)
+        setIsPlanApproved(false)
         await fetchActiveSessions()
         toast({
           title: "Success",
