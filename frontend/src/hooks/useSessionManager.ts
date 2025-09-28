@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { normalizeStructuredOutput } from '@/utils/structuredOutputUtils'
 
 const ISSUE_UPDATES_STORAGE_KEY = 'cognition-app-issue-updates'
 
@@ -49,18 +50,18 @@ interface ActiveSessionApiResponse {
 interface DevinSession {
   status: string
   structured_output?: {
-    progress_pct: number
-    confidence: 'low' | 'medium' | 'high'
-    summary: string
-    risks: string[]
-    dependencies: string[]
-    action_plan: Array<{
+    progress_pct?: number
+    confidence?: 'low' | 'medium' | 'high'
+    summary?: string
+    risks?: string[]
+    dependencies?: string[]
+    action_plan?: Array<{
       step: number
       desc: string
       done: boolean
     }>
-    branch_suggestion: string
-    pr_url: string
+    branch_suggestion?: string
+    pr_url?: string
     status?: string
     response?: {
       status: string
@@ -76,6 +77,36 @@ interface DevinSession {
       }>
       branch_suggestion: string
       pr_url?: string
+    }
+    progress?: {
+      progress_pct: number
+      confidence: 'low' | 'medium' | 'high'
+      summary: string
+      risks: string[]
+      dependencies: string[]
+      action_plan: Array<{
+        step: number
+        desc: string
+        done: boolean
+      }>
+      branch_suggestion: string
+      pr_url?: string
+      status?: string
+      response?: {
+        status: string
+        summary: string
+        confidence: 'low' | 'medium' | 'high'
+        progress_pct: number
+        risks: string[]
+        dependencies: string[]
+        action_plan: Array<{
+          step: number
+          desc: string
+          done: boolean
+        }>
+        branch_suggestion: string
+        pr_url?: string
+      }
     }
   }
   pull_request?: {
@@ -253,9 +284,10 @@ export function useSessionManager() {
       if (sessionData) {
         const prUrl = sessionData.pull_request?.url
         
+        const normalizedOutput = normalizeStructuredOutput(sessionData.structured_output)
         const isTaskCompleted = sessionData.status === 'finished' || 
-                               sessionData.structured_output?.status === 'completed' ||
-                               sessionData.structured_output?.response?.status === 'completed'
+                               normalizedOutput?.status === 'completed' ||
+                               normalizedOutput?.response?.status === 'completed'
         
         if (isTaskCompleted && prUrl) {
           const issueId = session?.issueId

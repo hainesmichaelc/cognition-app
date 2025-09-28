@@ -14,6 +14,7 @@ import { useSessionManager } from '@/hooks/useSessionManager'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import DOMPurify from 'dompurify'
+import { normalizeStructuredOutput } from '@/utils/structuredOutputUtils'
 
 interface Issue {
   id: number
@@ -30,18 +31,18 @@ interface Issue {
 interface DevinSession {
   status: string
   structured_output?: {
-    progress_pct: number
-    confidence: 'low' | 'medium' | 'high'
-    summary: string
-    risks: string[]
-    dependencies: string[]
-    action_plan: Array<{
+    progress_pct?: number
+    confidence?: 'low' | 'medium' | 'high'
+    summary?: string
+    risks?: string[]
+    dependencies?: string[]
+    action_plan?: Array<{
       step: number
       desc: string
       done: boolean
     }>
-    branch_suggestion: string
-    pr_url: string
+    branch_suggestion?: string
+    pr_url?: string
     status?: string
     response?: {
       status: string
@@ -57,6 +58,36 @@ interface DevinSession {
       }>
       branch_suggestion: string
       pr_url?: string
+    }
+    progress?: {
+      progress_pct: number
+      confidence: 'low' | 'medium' | 'high'
+      summary: string
+      risks: string[]
+      dependencies: string[]
+      action_plan: Array<{
+        step: number
+        desc: string
+        done: boolean
+      }>
+      branch_suggestion: string
+      pr_url?: string
+      status?: string
+      response?: {
+        status: string
+        summary: string
+        confidence: 'low' | 'medium' | 'high'
+        progress_pct: number
+        risks: string[]
+        dependencies: string[]
+        action_plan: Array<{
+          step: number
+          desc: string
+          done: boolean
+        }>
+        branch_suggestion: string
+        pr_url?: string
+      }
     }
   }
   pull_request?: {
@@ -77,9 +108,10 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const isSessionCompleted = (session: DevinSession | null) => {
   if (!session) return false
   
-  if (session.structured_output) {
-    return session.structured_output.status === 'completed' ||
-           session.structured_output.response?.status === 'completed'
+  const normalizedOutput = normalizeStructuredOutput(session.structured_output)
+  if (normalizedOutput) {
+    return normalizedOutput.status === 'completed' ||
+           normalizedOutput.response?.status === 'completed'
   }
   
   if (session.status === 'completed') {
@@ -92,8 +124,9 @@ const isSessionCompleted = (session: DevinSession | null) => {
 const getSessionDisplayStatus = (session: DevinSession | null) => {
   if (!session) return 'unknown'
   
-  if (session.structured_output?.status) {
-    const structuredStatus = session.structured_output.status
+  const normalizedOutput = normalizeStructuredOutput(session.structured_output)
+  if (normalizedOutput?.status) {
+    const structuredStatus = normalizedOutput.status
     if (structuredStatus === 'scoping') {
       return 'Scoping'
     } else if (structuredStatus === 'executing') {
@@ -134,10 +167,11 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
   const { getIssueSession, fetchSessionDetails, sessionDetails, isPolling, fetchActiveSessions, updateIssueStatus } = useSessionManager()
 
   useEffect(() => {
-    if (session?.structured_output?.branch_suggestion && !branchName) {
-      setBranchName(session.structured_output.branch_suggestion)
+    const normalizedOutput = normalizeStructuredOutput(session?.structured_output)
+    if (normalizedOutput?.branch_suggestion && !branchName) {
+      setBranchName(normalizedOutput.branch_suggestion)
     }
-  }, [session?.structured_output?.branch_suggestion, branchName])
+  }, [session?.structured_output, branchName])
 
   useEffect(() => {
     if (!isOpen || !issue) return
@@ -163,7 +197,8 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
       setSession(sessionData)
 
       const prUrl = sessionData.pull_request?.url
-      if ((sessionData.status === 'completed' || sessionData.structured_output?.response?.status === 'completed') && prUrl && issue) {
+      const normalizedOutput = normalizeStructuredOutput(sessionData.structured_output)
+      if ((sessionData.status === 'completed' || normalizedOutput?.response?.status === 'completed') && prUrl && issue) {
         updateIssueStatus(issue.id, 'PR Submitted', prUrl)
       }
     }
@@ -548,14 +583,17 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                 </CardTitle>
                 <CardDescription>
                   Session Status: {getSessionDisplayStatus(session)}
-                  {session.structured_output && (
-                    <>
-                      {' • '}
-                      <span className={`ml-1 font-medium ${getConfidenceColor(session.structured_output.confidence || '')}`}>
-                        {session.structured_output.confidence} confidence
-                      </span>
-                    </>
-                  )}
+                  {(() => {
+                    const normalizedOutput = normalizeStructuredOutput(session.structured_output)
+                    return normalizedOutput && (
+                      <>
+                        {' • '}
+                        <span className={`ml-1 font-medium ${getConfidenceColor(normalizedOutput.confidence || '')}`}>
+                          {normalizedOutput.confidence} confidence
+                        </span>
+                      </>
+                    )
+                  })()}
                   {session.pull_request?.url && (
                     <>
                       {' • '}
@@ -573,78 +611,86 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {session.structured_output && (
-                  <>
-                    <div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span>Progress</span>
-                        <span>{session.structured_output.progress_pct}%</span>
-                      </div>
-                      <Progress value={session.structured_output.progress_pct} />
-                    </div>
-
-                    <div>
-                      <h5 className="font-semibold mb-2">Summary</h5>
-                      <p className="text-sm text-gray-700">{session.structured_output.summary}</p>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-4">
+                {(() => {
+                  const normalizedOutput = normalizeStructuredOutput(session.structured_output)
+                  return normalizedOutput && (
+                    <>
                       <div>
-                        <h5 className="font-semibold mb-2">Risks</h5>
-                        <ul className="text-sm space-y-1">
-                          {session.structured_output.risks.length > 0 ? (
-                            session.structured_output.risks.map((risk, index) => (
-                              <li key={index} className="flex items-start gap-2">
-                                <span className="text-red-500 mt-1">•</span>
-                                {risk}
-                              </li>
-                            ))
-                          ) : (
-                            <li className="text-sm text-muted-foreground">No risks identified</li>
-                          )}
-                        </ul>
+                        <div className="flex justify-between text-sm mb-2">
+                          <span>Progress</span>
+                          <span>{normalizedOutput.progress_pct}%</span>
+                        </div>
+                        <Progress value={normalizedOutput.progress_pct} />
                       </div>
+
                       <div>
-                        <h5 className="font-semibold mb-2">Dependencies</h5>
-                        <ul className="text-sm space-y-1">
-                          {session.structured_output.dependencies.length > 0 ? (
-                            session.structured_output.dependencies.map((dep, index) => (
-                              <li key={index} className="flex items-start gap-2">
-                                <span className="text-blue-500 mt-1">•</span>
-                                {dep}
-                              </li>
-                            ))
-                          ) : (
-                            <li className="text-sm text-muted-foreground">No dependencies found</li>
-                          )}
-                        </ul>
+                        <h5 className="font-semibold mb-2">Summary</h5>
+                        <p className="text-sm text-gray-700">{normalizedOutput.summary}</p>
                       </div>
-                    </div>
 
-                    <div>
-                      <h5 className="font-semibold mb-2">Action Plan</h5>
-                      <div className="space-y-2">
-                        {session.structured_output?.action_plan.map((step, index) => {
-                          const isCurrentStep = !step.done && index === session.structured_output?.action_plan.findIndex(s => !s.done)
-                          return (
-                            <div key={`action-${step.step}`} className="flex items-start gap-2">
-                              {step.done ? (
-                                <CheckCircle className="h-4 w-4 mt-1 text-green-500" />
-                              ) : isCurrentStep && session.status === 'running' && !isSessionCompleted(session) && session.structured_output?.status === 'executing' ? (
-                                <Loader2 className="h-4 w-4 mt-1 animate-spin text-blue-600" />
-                              ) : (
-                                <CheckCircle className="h-4 w-4 mt-1 text-gray-300" />
-                              )}
-                              <span className={`text-sm ${step.done ? 'line-through text-gray-500' : ''}`}>
-                                {step.step}. {step.desc}
-                              </span>
-                            </div>
-                          )
-                        })}
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <h5 className="font-semibold mb-2">Risks</h5>
+                          <ul className="text-sm space-y-1">
+                            {normalizedOutput.risks.length > 0 ? (
+                              normalizedOutput.risks.map((risk, index) => (
+                                <li key={index} className="flex items-start gap-2">
+                                  <span className="text-red-500 mt-1">•</span>
+                                  {risk}
+                                </li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-muted-foreground">No risks identified</li>
+                            )}
+                          </ul>
+                        </div>
+                        <div>
+                          <h5 className="font-semibold mb-2">Dependencies</h5>
+                          <ul className="text-sm space-y-1">
+                            {normalizedOutput.dependencies.length > 0 ? (
+                              normalizedOutput.dependencies.map((dep, index) => (
+                                <li key={index} className="flex items-start gap-2">
+                                  <span className="text-blue-500 mt-1">•</span>
+                                  {dep}
+                                </li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-muted-foreground">No dependencies found</li>
+                            )}
+                          </ul>
+                        </div>
                       </div>
-                    </div>
 
-                    {session.status === 'blocked' && !isPlanApproved && (
+                      <div>
+                        <h5 className="font-semibold mb-2">Action Plan</h5>
+                        <div className="space-y-2">
+                          {normalizedOutput.action_plan.map((step, index) => {
+                            const isCurrentStep = !step.done && index === normalizedOutput.action_plan.findIndex(s => !s.done)
+                            return (
+                              <div key={`action-${step.step}`} className="flex items-start gap-2">
+                                {step.done ? (
+                                  <CheckCircle className="h-4 w-4 mt-1 text-green-500" />
+                                ) : isCurrentStep && session.status === 'running' && !isSessionCompleted(session) && normalizedOutput.status === 'executing' ? (
+                                  <Loader2 className="h-4 w-4 mt-1 animate-spin text-blue-600" />
+                                ) : (
+                                  <CheckCircle className="h-4 w-4 mt-1 text-gray-300" />
+                                )}
+                                <span className={`text-sm ${step.done ? 'line-through text-gray-500' : ''}`}>
+                                  {step.step}. {step.desc}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )
+                })()}
+
+                {(() => {
+                  return (
+                    <>
+                      {session.status === 'blocked' && !isPlanApproved && (
                       <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <Clock className="h-5 w-5 text-blue-600" />
@@ -748,9 +794,10 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                           View Pull Request
                         </a>
                       </div>
-                    )}
-                  </>
-                )}
+                      )}
+                    </>
+                  )
+                })()}
 
                 {/* Follow-up message UI - always available for active sessions */}
                 {session.status === 'running' && !isSessionCompleted(session) && (
