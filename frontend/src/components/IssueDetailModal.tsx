@@ -178,64 +178,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
     }
   }, [issue?.id])
 
-  useEffect(() => {
-    if (
-      session?.status === 'blocked' &&
-      session?.structured_output?.confidence === 'high' &&
-      session?.structured_output?.branch_suggestion &&
-      !isPlanApproved &&
-      !isExecuting &&
-      sessionId &&
-      issue
-    ) {
-      const executeHighConfidencePlan = async () => {
-        const suggestedBranch = session.structured_output!.branch_suggestion
-        setBranchName(suggestedBranch)
-        setTargetBranch('main')
-        setIsPlanApproved(true)
-
-        try {
-          const response = await fetch(`${API_BASE_URL}/api/issues/${issue.id}/execute`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              sessionId: sessionId,
-              branchName: suggestedBranch,
-              targetBranch: 'main',
-              approved: true,
-              additionalContext: additionalContext
-            })
-          })
-
-          if (response.ok) {
-            setIsPlanApproved(false)
-            toast({
-              title: "Auto-Execution Started",
-              description: "High confidence plan approved and execution started automatically"
-            })
-          } else {
-            setIsPlanApproved(false)
-            toast({
-              title: "Auto-execution failed",
-              description: "Please approve manually",
-              variant: "destructive"
-            })
-          }
-        } catch {
-          setIsPlanApproved(false)
-          toast({
-            title: "Auto-execution failed",
-            description: "Please approve manually",
-            variant: "destructive"
-          })
-        }
-      }
-
-      executeHighConfidencePlan()
-    }
-  }, [session?.status, session?.structured_output?.confidence, session?.structured_output?.branch_suggestion, isPlanApproved, isExecuting, sessionId, issue?.id, toast])
 
   const startScoping = async () => {
     if (!issue) return
@@ -702,7 +644,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       </div>
                     </div>
 
-                    {session.status === 'blocked' && !isPlanApproved && session.structured_output?.confidence !== 'high' && (
+                    {session.status === 'blocked' && !isPlanApproved && (
                       <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <Clock className="h-5 w-5 text-blue-600" />
@@ -739,19 +681,8 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       </div>
                     )}
 
-                    {session.status === 'blocked' && session.structured_output?.confidence === 'high' && !isPlanApproved && (
-                      <div className="bg-green-50 border border-green-200 rounded-md p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Loader2 className="h-5 w-5 text-green-600 animate-spin" />
-                          <h5 className="font-semibold text-green-800">Auto-Executing High Confidence Plan</h5>
-                        </div>
-                        <p className="text-sm text-green-700">
-                          This plan has high confidence and is being executed automatically. No manual approval required.
-                        </p>
-                      </div>
-                    )}
 
-                    {isSessionCompleted(session) && !isPlanApproved && !session.pull_request?.url && (session.structured_output?.confidence || session.structured_output?.response?.confidence) !== 'high' && (
+                    {isSessionCompleted(session) && !isPlanApproved && !session.pull_request?.url && (
                       <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <CheckCircle className="h-5 w-5 text-blue-600" />
