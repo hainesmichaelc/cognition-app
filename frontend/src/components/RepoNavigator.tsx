@@ -21,6 +21,42 @@ interface Repo {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+const validateGitHubUrl = (url: string): { isValid: boolean; error?: string } => {
+  if (!url.trim()) {
+    return { isValid: false, error: "Repository URL is required" }
+  }
+
+  try {
+    const urlObj = new URL(url)
+    
+    if (urlObj.protocol !== 'https:') {
+      return { isValid: false, error: "Repository URL must use HTTPS protocol" }
+    }
+    
+    if (urlObj.hostname !== 'github.com') {
+      return { isValid: false, error: "Only GitHub repositories are supported" }
+    }
+    
+    const pathParts = urlObj.pathname.split('/').filter(part => part.length > 0)
+    if (pathParts.length !== 2) {
+      return { isValid: false, error: "Invalid GitHub repository URL format. Expected: https://github.com/owner/repo" }
+    }
+    
+    const [owner, repo] = pathParts
+    if (!owner || !repo) {
+      return { isValid: false, error: "Repository URL must include both owner and repository name" }
+    }
+    
+    if (url.startsWith('ghp_') || url.startsWith('github_pat_')) {
+      return { isValid: false, error: "This appears to be a Personal Access Token, not a repository URL" }
+    }
+    
+    return { isValid: true }
+  } catch {
+    return { isValid: false, error: "Invalid URL format. Please enter a valid GitHub repository URL" }
+  }
+}
+
 export default function RepoNavigator() {
   const [repos, setRepos] = useState<Repo[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,6 +106,16 @@ export default function RepoNavigator() {
       return
     }
 
+    const urlValidation = validateGitHubUrl(repoUrl)
+    if (!urlValidation.isValid) {
+      toast({
+        title: "Invalid Repository URL",
+        description: urlValidation.error,
+        variant: "destructive"
+      })
+      return
+    }
+
     setConnecting(true)
     try {
       const response = await fetch(`${API_BASE_URL}/api/repos/connect`, {
@@ -95,20 +141,28 @@ export default function RepoNavigator() {
         await fetchRepos()
         navigate(`/repos/${encodeURIComponent(data.owner)}/${encodeURIComponent(data.name)}/issues`)
       } else {
-        const error = await response.json()
-        toast({
-          title: "Error",
-          description: error.detail || "Failed to connect repository",
-          variant: "destructive"
-        })
+        try {
+          const error = await response.json()
+          toast({
+            title: "Error",
+            description: error.detail || "Failed to connect repository",
+            variant: "destructive"
+          })
+        } catch {
+          toast({
+            title: "Error",
+            description: `Failed to connect repository (${response.status})`,
+            variant: "destructive"
+          })
+        }
       }
-    } catch {
+    } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to connect to backend",
+        description: "Failed to connect to backend. Please check your internet connection and try again.",
         variant: "destructive"
       })
-    } finally {
+    }finally {
       setConnecting(false)
     }
   }
