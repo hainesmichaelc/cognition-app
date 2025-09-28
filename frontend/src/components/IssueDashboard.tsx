@@ -211,9 +211,11 @@ export default function IssueDashboard() {
 
   const getAllLabels = () => {
     const labels = new Set<string>()
-    issues.forEach(issue => {
-      issue.labels.forEach(label => labels.add(label))
-    })
+    if (issues) {
+      issues.forEach(issue => {
+        issue.labels.forEach(label => labels.add(label))
+      })
+    }
     return Array.from(labels)
   }
 
@@ -354,7 +356,7 @@ export default function IssueDashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Issues ({issues.length})</CardTitle>
+          <CardTitle>Issues ({issues?.length || 0})</CardTitle>
           <div className="flex gap-4 items-end mt-4">
             <div className="flex-1">
               <Input
@@ -409,7 +411,7 @@ export default function IssueDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          {issues.length === 0 ? (
+          {!issues || issues.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">No issues found</p>
             </div>
@@ -427,7 +429,7 @@ export default function IssueDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {issues.map((issue) => {
+                {(issues || []).map((issue) => {
                   const sessionStatus = getSessionStatusForIssue(issue.id)
                   return (
                     <TableRow key={issue.id}>
