@@ -348,10 +348,10 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
 
   const getConfidenceColor = (confidence: string) => {
     switch (confidence) {
-      case 'high': return 'text-green-600'
-      case 'medium': return 'text-yellow-600'
-      case 'low': return 'text-red-600'
-      default: return 'text-gray-600'
+      case 'high': return 'text-green-600 dark:text-green-400'
+      case 'medium': return 'text-yellow-600 dark:text-yellow-400'
+      case 'low': return 'text-red-600 dark:text-red-400'
+      default: return 'text-gray-600 dark:text-gray-400'
     }
   }
 
@@ -378,7 +378,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
               href={repoData ? `${repoData.url}/issues/${issue.number}` : '#'}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800"
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
             >
               <ExternalLink className="h-4 w-4" />
             </a>
@@ -388,7 +388,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
               href={`https://github.com/${issue.author}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
+              className="text-blue-600 dark:text-blue-400 hover:underline"
             >
               {issue.author}
             </a> • {issue.age_days} days ago
@@ -405,9 +405,9 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
           </div>
 
           <div>
-            <h4 className="font-semibold mb-2">Description</h4>
-            <div className="bg-gray-50 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
-              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md prose-ul:space-y-1 prose-ol:space-y-1 prose-li:marker:text-gray-600">
+            <h4 className="font-semibold mb-2 dark:text-white">Description</h4>
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
+              <div className="prose prose-sm max-w-none dark:prose-invert prose-img:rounded-lg prose-img:shadow-md prose-ul:space-y-1 prose-ol:space-y-1 prose-li:marker:text-gray-600 dark:prose-li:marker:text-gray-400">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
@@ -432,14 +432,14 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       <li {...props} className="ml-4" />
                     ),
                     a: (props) => (
-                      <a {...props} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer" />
+                      <a {...props} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer" />
                     ),
                     code: (props) => {
                       const {className} = props;
                       const isInline = !className || !className.includes('language-');
                       return isInline ?
-                        <code {...props} className="bg-gray-200 px-1 py-0.5 rounded text-sm" /> :
-                        <code {...props} className="block bg-gray-200 p-2 rounded text-sm overflow-x-auto" />
+                        <code {...props} className="bg-gray-200 dark:bg-gray-700 dark:text-gray-200 px-1 py-0.5 rounded text-sm" /> :
+                        <code {...props} className="block bg-gray-200 dark:bg-gray-700 dark:text-gray-200 p-2 rounded text-sm overflow-x-auto" />
                     }
                   }}
                 >
@@ -475,14 +475,14 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                     {uploadedFiles.length > 0 && (
                       <div className="mt-2 space-y-1">
                         {uploadedFiles.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                          <div key={index} className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded">
                             <span>{file.name} ({(file.size / 1024).toFixed(1)} KB)</span>
                             <button
                               onClick={() => {
                                 const newFiles = uploadedFiles.filter((_, i) => i !== index)
                                 setUploadedFiles(newFiles)
                               }}
-                              className="text-red-500 hover:text-red-700"
+                              className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                             >
                               ×
                             </button>
@@ -528,7 +528,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                     href={session.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800"
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                   >
                     <ExternalLink className="h-4 w-4" />
                   </a>
@@ -553,7 +553,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                         href={session.pull_request.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                        className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
                       >
                         <ExternalLink className="h-3 w-3" />
                         PR

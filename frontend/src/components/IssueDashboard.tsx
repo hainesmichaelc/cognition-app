@@ -245,28 +245,28 @@ export default function IssueDashboard() {
         )
       case DISPLAY_STATUS.SCOPING:
         return (
-          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+          <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
             <Loader2 className="mr-1 h-3 w-3 animate-spin" />
             Scoping
           </Badge>
         )
       case DISPLAY_STATUS.AWAITING_INPUT:
         return (
-          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+          <Badge variant="secondary" className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">
             <AlertTriangle className="mr-1 h-3 w-3" />
             Awaiting Input
           </Badge>
         )
       case DISPLAY_STATUS.EXECUTING:
         return (
-          <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+          <Badge variant="secondary" className="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200">
             <Clock className="mr-1 h-3 w-3" />
             Executing
           </Badge>
         )
       case DISPLAY_STATUS.PR_READY:
         return (
-          <Badge variant="secondary" className="bg-green-100 text-green-800">
+          <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
             <CheckCircle className="mr-1 h-3 w-3" />
             Completed
           </Badge>
@@ -279,7 +279,7 @@ export default function IssueDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading issues...</div>
+        <div className="text-lg dark:text-white">Loading issues...</div>
       </div>
     )
   }
@@ -300,13 +300,13 @@ export default function IssueDashboard() {
 
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Issue Dashboard</h2>
+          <h2 className="text-3xl font-bold tracking-tight dark:text-white">Issue Dashboard</h2>
           {repoData && (
-            <p className="text-lg text-muted-foreground mb-2">
+            <p className="text-lg text-muted-foreground dark:text-gray-400 mb-2">
               {repoData.owner}/{repoData.name}
             </p>
           )}
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground dark:text-gray-400">
             Manage and triage repository issues
             {activeSessions.length > 0 && (
               <span className="ml-2">
@@ -339,7 +339,7 @@ export default function IssueDashboard() {
             </div>
             <div className="flex-1">
               <select
-                className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                className="w-full px-3 py-2 border border-input bg-background dark:bg-gray-800 dark:text-white dark:border-gray-600 rounded-md"
                 value={selectedLabel}
                 onChange={(e) => setSelectedLabel(e.target.value)}
               >
@@ -351,7 +351,7 @@ export default function IssueDashboard() {
             </div>
             <div className="flex-1">
               <select
-                className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                className="w-full px-3 py-2 border border-input bg-background dark:bg-gray-800 dark:text-white dark:border-gray-600 rounded-md"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
@@ -363,7 +363,7 @@ export default function IssueDashboard() {
             </div>
             <div className="flex-1">
               <select
-                className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                className="w-full px-3 py-2 border border-input bg-background dark:bg-gray-800 dark:text-white dark:border-gray-600 rounded-md"
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value)}
               >
@@ -384,7 +384,7 @@ export default function IssueDashboard() {
         <CardContent>
           {issues.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">No issues found</p>
+              <p className="text-muted-foreground dark:text-gray-400">No issues found</p>
             </div>
           ) : (
             <Table>
@@ -413,14 +413,14 @@ export default function IssueDashboard() {
                                 href={sessionStatus.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800"
+                                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                               >
                                 <ExternalLink className="h-3 w-3" />
                               </a>
                             )}
                           </div>
                         ) : (
-                          <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                          <Badge variant="secondary" className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
                             Not Scoped
                           </Badge>
                         )}
@@ -434,7 +434,7 @@ export default function IssueDashboard() {
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1"
                             >
-                              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
                                 {issueUpdates[issue.id].status}
                               </Badge>
                               <ExternalLink className="h-3 w-3" />
@@ -450,7 +450,7 @@ export default function IssueDashboard() {
                       </TableCell>
                     <TableCell>
                       <button
-                        className="text-left hover:underline font-medium"
+                        className="text-left hover:underline font-medium dark:text-white"
                         onClick={() => openIssueDetail(issue)}
                       >
                         {issue.title}
@@ -492,7 +492,7 @@ export default function IssueDashboard() {
                         href={`https://github.com/${issue.author}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
                       >
                         {issue.author}
                       </a>
@@ -510,7 +510,7 @@ export default function IssueDashboard() {
       {/* Infinite scroll sentinel */}
       <div id="scroll-sentinel" className="h-4 flex justify-center items-center">
         {loadingMore && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground dark:text-gray-400">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading more issues...
           </div>

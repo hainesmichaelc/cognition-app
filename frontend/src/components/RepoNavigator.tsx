@@ -156,13 +156,14 @@ export default function RepoNavigator() {
           })
         }
       }
-    } catch (error) {
+    } catch (err) {
+      console.error('Failed to connect repository:', err)
       toast({
         title: "Error",
         description: "Failed to connect to backend. Please check your internet connection and try again.",
         variant: "destructive"
       })
-    }finally {
+    } finally {
       setConnecting(false)
     }
   }
@@ -198,7 +199,7 @@ export default function RepoNavigator() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading repositories...</div>
+        <div className="text-lg dark:text-white">Loading repositories...</div>
       </div>
     )
   }
@@ -207,8 +208,8 @@ export default function RepoNavigator() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Repository Navigator</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-3xl font-bold tracking-tight dark:text-white">Repository Navigator</h2>
+          <p className="text-muted-foreground dark:text-gray-400">
             Connect and manage your GitHub repositories
           </p>
         </div>
@@ -280,8 +281,8 @@ export default function RepoNavigator() {
         <Card className="text-center py-12">
           <CardContent>
             <div className="mx-auto max-w-sm">
-              <h3 className="text-lg font-semibold">No repositories connected</h3>
-              <p className="text-muted-foreground mt-2">
+              <h3 className="text-lg font-semibold dark:text-white">No repositories connected</h3>
+              <p className="text-muted-foreground dark:text-gray-400 mt-2">
                 Connect your first GitHub repository to get started with issue automation
               </p>
               <Button
@@ -308,10 +309,10 @@ export default function RepoNavigator() {
             </TableHeader>
             <TableBody>
               {repos.map((repo) => (
-                <TableRow key={repo.id} className="cursor-pointer hover:bg-muted/50">
+                <TableRow key={repo.id} className="cursor-pointer hover:bg-muted/50 dark:hover:bg-gray-800/50">
                   <TableCell className="font-medium">
                     <button
-                      className="text-left hover:underline"
+                      className="text-left hover:underline dark:text-white"
                       onClick={() => navigate(`/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}/issues`)}
                     >
                       {repo.owner}/{repo.name}
@@ -322,7 +323,7 @@ export default function RepoNavigator() {
                       href={repo.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline flex items-center gap-1"
+                      className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                     >
                       <ExternalLink className="h-3 w-3" />
                       View on GitHub
@@ -333,7 +334,7 @@ export default function RepoNavigator() {
                       {repo.openIssuesCount} issues
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-muted-foreground dark:text-gray-400">
                     {new Date(repo.connectedAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
