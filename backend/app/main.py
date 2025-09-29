@@ -1151,6 +1151,9 @@ async def get_devin_session(session_id: str):
 
         status = session_data.get("status_enum", "Initializing")
         structured_output = session_data.get("structured_output")
+        if structured_output is None:
+            messages = session_data.get("messages", [])
+            structured_output = extract_structured_output_from_messages(messages)
         if structured_output:
             output_status = structured_output.get("status")
             if output_status and status is not "blocked":
