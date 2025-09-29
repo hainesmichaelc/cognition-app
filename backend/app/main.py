@@ -1149,32 +1149,12 @@ async def get_devin_session(session_id: str):
     try:
         session_data = await devin_api.get_session(session_id)
 
-        api_status_enum = session_data.get("status_enum", "unknown")
+        status = session_data.get("status_enum", "Initializing")
         structured_output = session_data.get("structured_output")
-        
-        running_or_blocked_status = api_status_enum
-        
-        phase_status = "scoping"  # default
-        if structured_output and isinstance(structured_output, dict):
-            structured_status = structured_output.get("status")
-            if structured_status in ["scoping", "executing", "completed"]:
-                phase_status = structured_status
-        
-        final_status = (phase_status if phase_status != "scoping" or 
-                       running_or_blocked_status in ["running", "blocked"] 
-                       else running_or_blocked_status)
-        
-        if structured_output is None:
-            messages = session_data.get("messages", [])
-            extracted_output = extract_structured_output_from_messages(messages)
-            if extracted_output:
-                structured_output = extracted_output
-                extracted_status = extracted_output.get("status")
-                if extracted_status:
-                    phase_status = extracted_status
-                    final_status = phase_status
-        
-        status = final_status or "Initializing"
+        if structured_output:
+            output_status = structured_output.get("status")
+            if output_status and status is not "blocked":
+                status = output_status
         
         clean_session_id = session_id.removeprefix("devin-")
         url = session_data.get(
