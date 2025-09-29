@@ -1174,7 +1174,7 @@ async def get_devin_session(session_id: str):
                     phase_status = extracted_status
                     final_status = phase_status
         
-        status = final_status
+        status = final_status or "Initializing"
         
         clean_session_id = session_id.removeprefix("devin-")
         url = session_data.get(
