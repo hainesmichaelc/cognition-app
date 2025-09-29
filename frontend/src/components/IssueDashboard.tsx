@@ -245,7 +245,7 @@ export default function IssueDashboard() {
         )
       case DISPLAY_STATUS.SCOPING:
         return (
-          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
             <Loader2 className="mr-1 h-3 w-3 animate-spin" />
             Scoping
           </Badge>
@@ -413,7 +413,7 @@ export default function IssueDashboard() {
                                 href={sessionStatus.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800"
+                                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                               >
                                 <ExternalLink className="h-3 w-3" />
                               </a>
@@ -492,7 +492,7 @@ export default function IssueDashboard() {
                         href={`https://github.com/${issue.author}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
                       >
                         {issue.author}
                       </a>
