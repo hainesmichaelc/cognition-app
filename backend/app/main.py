@@ -75,7 +75,8 @@ async def periodic_structured_output_updates():
             current_time = datetime.now(timezone.utc)
 
             for session_id, session_data in sessions_store.items():
-                if session_data["status"] not in [
+                session_status = session_data.get("status") or "working"
+                if session_status not in [
                     "completed", "failed", "cancelled"
                 ]:
                     last_update = structured_output_update_store.get(session_id)
@@ -1328,9 +1329,10 @@ PR link to the structured output."""
 async def get_issue_session(issue_id: int):
     """Get active session for a specific issue"""
     for session_id, session_data in sessions_store.items():
+        session_status = session_data.get("status") or "working"
         if (session_data["issue_id"] == issue_id and
-                session_data["status"] not in ["completed", "failed"]):
-            return {"sessionId": session_id, "status": session_data["status"]}
+                session_status not in ["completed", "failed"]):
+            return {"sessionId": session_id, "status": session_status}
 
     return {"sessionId": None, "status": None}
 
@@ -1341,7 +1343,9 @@ async def get_active_sessions():
     active_sessions = []
 
     for session_id, session_data in sessions_store.items():
-        if session_data["status"] not in ["completed", "failed"]:
+        session_status = session_data.get("status") or "working"
+        
+        if session_status not in ["completed", "failed"]:
             issue_data = None
             repo_data = None
 
@@ -1361,7 +1365,7 @@ async def get_active_sessions():
                     repo_id=session_data["repo_id"],
                     issue_title=issue_data["title"],
                     repo_name=repo_data["name"],
-                    status=session_data["status"],
+                    status=session_status,
                     created_at=session_data["created_at"],
                     last_accessed=session_data["last_accessed"]
                 ))
