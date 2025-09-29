@@ -661,7 +661,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                         </p>
                         <div className="flex gap-2 flex-wrap">
                           <Button
-                            onClick={() => sendApprovalMessage('APPROVE: proceed with step 1. If risks exist, call them out first.')}
+                            onClick={() => sendApprovalMessage('APPROVE: proceed with step 1. Update your structured output status to "executing" and continue working on the plan.')}
                             className="bg-green-600 hover:bg-green-700"
                           >
                             <CheckCircle className="mr-2 h-4 w-4" />
