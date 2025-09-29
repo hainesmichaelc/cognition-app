@@ -85,11 +85,25 @@ async def periodic_structured_output_updates():
                         current_time - last_update
                     ).total_seconds() >= 60:
                         try:
-                            await devin_api.send_message(
-                                session_id,
-                                "Please update your structured output with "
-                                "current progress"
-                            )
+                            current_session_data = await devin_api.get_session(session_id)
+                            structured_output = current_session_data.get("structured_output")
+                            
+                            if structured_output is None:
+                                messages = current_session_data.get("messages", [])
+                                structured_output = extract_structured_output_from_messages(messages)
+                            
+                            should_send_update = True
+                            if structured_output and "progress_pct" in structured_output:
+                                progress_pct = structured_output.get("progress_pct", 0)
+                                should_send_update = progress_pct < 100
+                            
+                            if should_send_update:
+                                await devin_api.send_message(
+                                    session_id,
+                                    "Please update your structured output with "
+                                    "current progress"
+                                )
+                            
                             structured_output_update_store[session_id] = (
                                 current_time
                             )
