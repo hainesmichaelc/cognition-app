@@ -9,12 +9,14 @@ export const SESSION_STATES = {
   BLOCKED: 'blocked',
   FINISHED: 'finished',
   FAILED: 'failed',
-  CANCELLED: 'cancelled'
+  CANCELLED: 'cancelled',
+  INITIALIZING: 'Initializing'
 } as const
 
 export const DISPLAY_STATUS = {
   NOT_SCOPED: 'not-scoped',
   SCOPING: 'scoping',
+  INITIALIZING: 'initializing',
   AWAITING_INPUT: 'awaiting-input',
   EXECUTING: 'executing',
   PR_READY: 'pr-ready'
@@ -31,6 +33,10 @@ interface DevinSession {
 
 export function getSessionDisplayStatus(session: DevinSession | null): string {
   if (!session) return DISPLAY_STATUS.NOT_SCOPED
+  
+  if (session.status === SESSION_STATES.INITIALIZING) {
+    return DISPLAY_STATUS.INITIALIZING
+  }
   
   const structuredStatus = session.structured_output?.status
   if (structuredStatus === SESSION_PHASES.SCOPING) {
