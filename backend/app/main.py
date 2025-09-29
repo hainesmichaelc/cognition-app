@@ -86,15 +86,21 @@ async def periodic_structured_output_updates():
                     ).total_seconds() >= 60:
                         try:
                             current_session_data = await devin_api.get_session(session_id)
-                            structured_output = current_session_data.get("structured_output")
+                            new_structured_output = current_session_data.get("structured_output")
                             
-                            if structured_output is None:
+                            if new_structured_output is None:
                                 messages = current_session_data.get("messages", [])
-                                structured_output = extract_structured_output_from_messages(messages)
+                                new_structured_output = extract_structured_output_from_messages(messages)
+                            
+                            existing_structured_output = session_data.get("structured_output")
+                            merged_structured_output = merge_structured_output(existing_structured_output, new_structured_output)
+                            
+                            if merged_structured_output:
+                                sessions_store[session_id]["structured_output"] = merged_structured_output
                             
                             should_send_update = True
-                            if structured_output and "progress_pct" in structured_output:
-                                progress_pct = structured_output.get("progress_pct", 0)
+                            if new_structured_output and "progress_pct" in new_structured_output:
+                                progress_pct = new_structured_output.get("progress_pct", 0)
                                 should_send_update = progress_pct < 100
                             
                             if should_send_update:
@@ -528,6 +534,52 @@ class DevinAPIService:
                 raise HTTPException(status_code=500, detail=error_msg)
 
             return response.json()
+
+
+def merge_structured_output(existing: Optional[Dict[str, Any]], 
+                             new: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """
+    Merge new structured output with existing, preserving fields that aren't in the new data.
+    
+    Args:
+        existing: Previously stored structured output
+        new: New structured output from Devin API
+        
+    Returns:
+        Merged structured output with preserved fields
+    """
+    if not new:
+        return existing
+    
+    if not existing:
+        return new
+    
+    merged = existing.copy()
+    
+    for key, value in new.items():
+        if (key == "action_plan" and isinstance(value, list) and 
+                isinstance(merged.get(key), list)):
+            existing_steps = {
+                step.get("step"): step for step in merged[key] 
+                if isinstance(step, dict) and "step" in step
+            }
+            new_steps = {
+                step.get("step"): step for step in value 
+                if isinstance(step, dict) and "step" in step
+            }
+            
+            all_steps = {**existing_steps, **new_steps}
+            merged[key] = sorted(all_steps.values(), 
+                               key=lambda x: x.get("step", 0))
+        elif (key in ["risks", "dependencies"] and isinstance(value, list) and 
+              isinstance(merged.get(key), list)):
+            existing_items = set(merged[key])
+            new_items = set(value)
+            merged[key] = list(existing_items.union(new_items))
+        else:
+            merged[key] = value
+    
+    return merged
 
 
 devin_api = DevinAPIService()
@@ -1141,7 +1193,8 @@ strategy
             "repo_id": repo_id,
             "created_at": datetime.now(timezone.utc),
             "last_accessed": datetime.now(timezone.utc),
-            "status": "scoping"
+            "status": "scoping",
+            "structured_output": None
         }
 
         return {"sessionId": session_id}
@@ -1164,12 +1217,20 @@ async def get_devin_session(session_id: str):
         session_data = await devin_api.get_session(session_id)
 
         status = session_data.get("status_enum") or session_data.get("status") or "Initializing"
-        structured_output = session_data.get("structured_output")
-        if structured_output is None:
+        new_structured_output = session_data.get("structured_output")
+        if new_structured_output is None:
             messages = session_data.get("messages", [])
-            structured_output = extract_structured_output_from_messages(messages)
-        if structured_output:
-            output_status = structured_output.get("status")
+            new_structured_output = extract_structured_output_from_messages(messages)
+        
+        existing_structured_output = None
+        if session_id in sessions_store:
+            existing_structured_output = sessions_store[session_id].get("structured_output")
+        
+        merged_structured_output = merge_structured_output(
+            existing_structured_output, new_structured_output)
+        
+        if new_structured_output:
+            output_status = new_structured_output.get("status")
             if output_status and status != "blocked":
                 status = output_status
         
@@ -1179,13 +1240,13 @@ async def get_devin_session(session_id: str):
         )
 
         if session_id in sessions_store:
-            sessions_store[session_id]["last_accessed"] = datetime.now(
-                timezone.utc)
+            sessions_store[session_id]["last_accessed"] = datetime.now(timezone.utc)
             sessions_store[session_id]["status"] = status
+            sessions_store[session_id]["structured_output"] = merged_structured_output
 
         return DevinSessionResponse(
             status=status,
-            structured_output=structured_output,
+            structured_output=merged_structured_output,
             pull_request=session_data.get("pull_request"),
             url=url,
         )
