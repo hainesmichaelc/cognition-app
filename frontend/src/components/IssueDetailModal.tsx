@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { ExternalLink, Play, MessageSquare, CheckCircle, Loader2, Clock, AlertTriangle } from 'lucide-react'
+import { ExternalLink, Play, MessageSquare, CheckCircle, Loader2, Clock } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useSessionManager } from '@/hooks/useSessionManager'
 import ReactMarkdown from 'react-markdown'
@@ -119,10 +119,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
   const [isExecuting, setIsExecuting] = useState(false)
   const [isPlanApproved, setIsPlanApproved] = useState(false)
   const [showApprovalDialog, setShowApprovalDialog] = useState(false)
-  const [showRequestChangesDialog, setShowRequestChangesDialog] = useState(false)
-  const [showQuestionDialog, setShowQuestionDialog] = useState(false)
-  const [requestChangesMessage, setRequestChangesMessage] = useState('')
-  const [questionMessage, setQuestionMessage] = useState('')
   const { toast } = useToast()
   const { getIssueSession, fetchSessionDetails, sessionDetails, isPolling, fetchActiveSessions, updateIssueStatus } = useSessionManager()
 
@@ -367,10 +363,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
     setTargetBranch('main')
     setIsPlanApproved(false)
     setShowApprovalDialog(false)
-    setShowRequestChangesDialog(false)
-    setShowQuestionDialog(false)
-    setRequestChangesMessage('')
-    setQuestionMessage('')
     onClose()
   }
 
@@ -667,22 +659,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                             <CheckCircle className="mr-2 h-4 w-4" />
                             Approve Plan
                           </Button>
-                          <Button
-                            onClick={() => setShowRequestChangesDialog(true)}
-                            variant="outline"
-                            className="border-orange-500 text-orange-700 hover:bg-orange-50"
-                          >
-                            <AlertTriangle className="mr-2 h-4 w-4" />
-                            Request Changes
-                          </Button>
-                          <Button
-                            onClick={() => setShowQuestionDialog(true)}
-                            variant="outline"
-                            className="border-blue-500 text-blue-700 hover:bg-blue-50"
-                          >
-                            <MessageSquare className="mr-2 h-4 w-4" />
-                            Ask Question
-                          </Button>
                         </div>
                       </div>
                     )}
@@ -843,71 +819,6 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
         </DialogFooter>
       </DialogContent>
 
-      {/* Request Changes Dialog */}
-      <AlertDialog open={showRequestChangesDialog} onOpenChange={setShowRequestChangesDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Request Changes</AlertDialogTitle>
-            <AlertDialogDescription>
-              Provide feedback on what changes you'd like to see in the plan:
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-4">
-            <Textarea
-              placeholder="Describe the changes you'd like to see..."
-              value={requestChangesMessage}
-              onChange={(e) => setRequestChangesMessage(e.target.value)}
-              rows={4}
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setRequestChangesMessage('')}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                sendApprovalMessage(`REQUEST CHANGES: ${requestChangesMessage}`)
-                setShowRequestChangesDialog(false)
-                setRequestChangesMessage('')
-              }}
-              disabled={!requestChangesMessage.trim()}
-            >
-              Send Feedback
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Question Dialog */}
-      <AlertDialog open={showQuestionDialog} onOpenChange={setShowQuestionDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Ask Question</AlertDialogTitle>
-            <AlertDialogDescription>
-              Ask a clarifying question about the implementation plan:
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-4">
-            <Textarea
-              placeholder="What would you like to know?"
-              value={questionMessage}
-              onChange={(e) => setQuestionMessage(e.target.value)}
-              rows={3}
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setQuestionMessage('')}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                sendApprovalMessage(`QUESTION: ${questionMessage}`)
-                setShowQuestionDialog(false)
-                setQuestionMessage('')
-              }}
-              disabled={!questionMessage.trim()}
-            >
-              Ask Question
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Dialog>
   )
 }
