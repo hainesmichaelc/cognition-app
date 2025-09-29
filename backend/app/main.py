@@ -1150,17 +1150,21 @@ async def get_devin_session(session_id: str):
 
         api_status = session_data.get("status", "unknown")
         api_status_enum = session_data.get("status_enum")
-        
         structured_output = session_data.get("structured_output")
-        status = api_status
         
+        running_or_blocked_status = (api_status_enum if api_status_enum 
+                                     else api_status)
+        
+        phase_status = "scoping"  # default
         if structured_output and isinstance(structured_output, dict):
             structured_status = structured_output.get("status")
-            if structured_status:
-                status = structured_status
-        elif api_status_enum:
-            status = api_status_enum
-            
+            if structured_status in ["scoping", "executing", "completed"]:
+                phase_status = structured_status
+        
+        final_status = (phase_status if phase_status != "scoping" or 
+                       running_or_blocked_status in ["running", "blocked"] 
+                       else running_or_blocked_status)
+        
         if structured_output is None:
             messages = session_data.get("messages", [])
             extracted_output = extract_structured_output_from_messages(messages)
@@ -1168,10 +1172,10 @@ async def get_devin_session(session_id: str):
                 structured_output = extracted_output
                 extracted_status = extracted_output.get("status")
                 if extracted_status:
-                    status = extracted_status
+                    phase_status = extracted_status
+                    final_status = phase_status
         
-        if api_status != api_status_enum and api_status_enum:
-            print(f"Status discrepancy for session {session_id}: status='{api_status}', status_enum='{api_status_enum}', final_status='{status}'")
+        status = final_status
         
         clean_session_id = session_id.removeprefix("devin-")
         url = session_data.get(

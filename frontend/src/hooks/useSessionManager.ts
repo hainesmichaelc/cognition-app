@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { normalizeStructuredOutput } from '@/utils/structuredOutputUtils'
+import { isSessionCompleted } from '@/utils/sessionStatusUtils'
 
 const ISSUE_UPDATES_STORAGE_KEY = 'cognition-app-issue-updates'
 
@@ -284,10 +284,7 @@ export function useSessionManager() {
       if (sessionData) {
         const prUrl = sessionData.pull_request?.url
         
-        const normalizedOutput = normalizeStructuredOutput(sessionData.structured_output)
-        const isTaskCompleted = sessionData.status === 'finished' || 
-                               normalizedOutput?.status === 'completed' ||
-                               normalizedOutput?.response?.status === 'completed'
+        const isTaskCompleted = isSessionCompleted(sessionData)
         
         if (isTaskCompleted && prUrl) {
           const issueId = session?.issueId

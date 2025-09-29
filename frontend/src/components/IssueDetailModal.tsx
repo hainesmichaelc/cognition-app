@@ -15,6 +15,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import DOMPurify from 'dompurify'
 import { normalizeStructuredOutput } from '@/utils/structuredOutputUtils'
+import { getSessionDisplayStatus, isSessionCompleted, SESSION_PHASES, SESSION_STATES } from '@/utils/sessionStatusUtils'
 
 interface Issue {
   id: number
@@ -105,47 +106,6 @@ interface IssueDetailModalProps {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-const isSessionCompleted = (session: DevinSession | null) => {
-  if (!session) return false
-  
-  const normalizedOutput = normalizeStructuredOutput(session.structured_output)
-  if (normalizedOutput) {
-    return normalizedOutput.status === 'completed' ||
-           normalizedOutput.response?.status === 'completed'
-  }
-  
-  if (session.status === 'completed') {
-    return true
-  }
-  
-  return false
-}
-
-const getSessionDisplayStatus = (session: DevinSession | null) => {
-  if (!session) return 'unknown'
-  
-  const normalizedOutput = normalizeStructuredOutput(session.structured_output)
-  if (normalizedOutput?.status) {
-    const structuredStatus = normalizedOutput.status
-    if (structuredStatus === 'scoping') {
-      return 'Scoping'
-    } else if (structuredStatus === 'executing') {
-      return 'Executing'
-    } else if (structuredStatus === 'completed') {
-      return 'Completed'
-    } else {
-      return 'Scoping'
-    }
-  } else if (session.status === 'blocked') {
-    return 'Awaiting Input'
-  } else if (session.status === 'completed') {
-    return 'Completed'
-  } else if (session.status === 'running') {
-    return 'Scoping'
-  } else {
-    return 'Scoping'
-  }
-}
 
 export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: IssueDetailModalProps) {
   const [additionalContext, setAdditionalContext] = useState('')
@@ -198,7 +158,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
 
       const prUrl = sessionData.pull_request?.url
       const normalizedOutput = normalizeStructuredOutput(sessionData.structured_output)
-      if ((sessionData.status === 'completed' || normalizedOutput?.response?.status === 'completed') && prUrl && issue) {
+      if ((sessionData.status === SESSION_STATES.FINISHED || normalizedOutput?.response?.status === SESSION_PHASES.COMPLETED) && prUrl && issue) {
         updateIssueStatus(issue.id, 'PR Submitted', prUrl)
       }
     }
@@ -670,7 +630,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                               <div key={`action-${step.step}`} className="flex items-start gap-2">
                                 {step.done ? (
                                   <CheckCircle className="h-4 w-4 mt-1 text-green-500" />
-                                ) : isCurrentStep && session.status === 'running' && !isSessionCompleted(session) && normalizedOutput.status === 'executing' ? (
+                                ) : isCurrentStep && session.status === SESSION_STATES.RUNNING && !isSessionCompleted(session) && normalizedOutput.status === SESSION_PHASES.EXECUTING ? (
                                   <Loader2 className="h-4 w-4 mt-1 animate-spin text-blue-600" />
                                 ) : (
                                   <CheckCircle className="h-4 w-4 mt-1 text-gray-300" />
@@ -690,7 +650,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                 {(() => {
                   return (
                     <>
-                      {session.status === 'blocked' && !isPlanApproved && (
+                      {session.status === SESSION_STATES.BLOCKED && !isPlanApproved && (
                       <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <Clock className="h-5 w-5 text-blue-600" />
@@ -800,7 +760,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                 })()}
 
                 {/* Follow-up message UI - always available for active sessions */}
-                {session.status === 'running' && !isSessionCompleted(session) && (
+                {session.status === SESSION_STATES.RUNNING && !isSessionCompleted(session) && (
                   <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
                     <div className="flex items-start gap-2">
                       <MessageSquare className="h-4 w-4 text-blue-600 mt-0.5" />
