@@ -295,7 +295,7 @@ export default function RepoNavigator() {
           </CardContent>
         </Card>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded-md border dark:border-gray-700">
           <Table>
             <TableHeader>
               <TableRow>

@@ -339,7 +339,7 @@ export default function IssueDashboard() {
             </div>
             <div className="flex-1">
               <select
-                className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                className="w-full px-3 py-2 border border-input bg-background dark:bg-gray-800 dark:border-gray-600 rounded-md"
                 value={selectedLabel}
                 onChange={(e) => setSelectedLabel(e.target.value)}
               >
@@ -351,7 +351,7 @@ export default function IssueDashboard() {
             </div>
             <div className="flex-1">
               <select
-                className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                className="w-full px-3 py-2 border border-input bg-background dark:bg-gray-800 dark:border-gray-600 rounded-md"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
@@ -363,7 +363,7 @@ export default function IssueDashboard() {
             </div>
             <div className="flex-1">
               <select
-                className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                className="w-full px-3 py-2 border border-input bg-background dark:bg-gray-800 dark:border-gray-600 rounded-md"
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value)}
               >
@@ -420,7 +420,7 @@ export default function IssueDashboard() {
                             )}
                           </div>
                         ) : (
-                          <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                          <Badge variant="secondary" className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
                             Not Scoped
                           </Badge>
                         )}
@@ -434,7 +434,7 @@ export default function IssueDashboard() {
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1"
                             >
-                              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              <Badge variant="secondary" className="bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200">
                                 {issueUpdates[issue.id].status}
                               </Badge>
                               <ExternalLink className="h-3 w-3" />
