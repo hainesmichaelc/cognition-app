@@ -239,7 +239,7 @@ export default function IssueDashboard() {
     switch (status) {
       case DISPLAY_STATUS.NOT_SCOPED:
         return (
-          <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+          <Badge variant="secondary" className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
             Not Scoped
           </Badge>
         )
@@ -266,7 +266,7 @@ export default function IssueDashboard() {
         )
       case DISPLAY_STATUS.PR_READY:
         return (
-          <Badge variant="secondary" className="bg-green-100 text-green-800">
+          <Badge variant="secondary" className="bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200">
             <CheckCircle className="mr-1 h-3 w-3" />
             Completed
           </Badge>
@@ -413,14 +413,14 @@ export default function IssueDashboard() {
                                 href={sessionStatus.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800"
+                                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                               >
                                 <ExternalLink className="h-3 w-3" />
                               </a>
                             )}
                           </div>
                         ) : (
-                          <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                          <Badge variant="secondary" className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
                             Not Scoped
                           </Badge>
                         )}
@@ -434,7 +434,7 @@ export default function IssueDashboard() {
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1"
                             >
-                              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              <Badge variant="secondary" className="bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200">
                                 {issueUpdates[issue.id].status}
                               </Badge>
                               <ExternalLink className="h-3 w-3" />
@@ -492,7 +492,7 @@ export default function IssueDashboard() {
                         href={`https://github.com/${issue.author}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
                       >
                         {issue.author}
                       </a>

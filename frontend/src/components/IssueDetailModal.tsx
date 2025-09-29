@@ -386,7 +386,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
               href={repoData ? `${repoData.url}/issues/${issue.number}` : '#'}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800"
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
             >
               <ExternalLink className="h-4 w-4" />
             </a>
@@ -396,7 +396,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
               href={`https://github.com/${issue.author}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
+              className="text-blue-600 dark:text-blue-400 hover:underline"
             >
               {issue.author}
             </a> • {issue.age_days} days ago
@@ -440,14 +440,14 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       <li {...props} className="ml-4" />
                     ),
                     a: (props) => (
-                      <a {...props} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer" />
+                      <a {...props} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer" />
                     ),
                     code: (props) => {
                       const {className} = props;
                       const isInline = !className || !className.includes('language-');
                       return isInline ?
-                        <code {...props} className="bg-gray-200 px-1 py-0.5 rounded text-sm" /> :
-                        <code {...props} className="block bg-gray-200 p-2 rounded text-sm overflow-x-auto" />
+                        <code {...props} className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm" /> :
+                        <code {...props} className="block bg-gray-200 dark:bg-gray-700 p-2 rounded text-sm overflow-x-auto" />
                     }
                   }}
                 >
@@ -536,7 +536,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                     href={session.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800"
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                   >
                     <ExternalLink className="h-4 w-4" />
                   </a>
@@ -561,7 +561,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                         href={session.pull_request.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                        className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
                       >
                         <ExternalLink className="h-3 w-3" />
                         PR
