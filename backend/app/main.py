@@ -1148,12 +1148,10 @@ async def get_devin_session(session_id: str):
     try:
         session_data = await devin_api.get_session(session_id)
 
-        api_status = session_data.get("status", "unknown")
-        api_status_enum = session_data.get("status_enum")
+        api_status_enum = session_data.get("status_enum", "unknown")
         structured_output = session_data.get("structured_output")
         
-        running_or_blocked_status = (api_status_enum if api_status_enum 
-                                     else api_status)
+        running_or_blocked_status = api_status_enum
         
         phase_status = "scoping"  # default
         if structured_output and isinstance(structured_output, dict):
