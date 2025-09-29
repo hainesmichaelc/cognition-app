@@ -322,7 +322,7 @@ export default function RepoNavigator() {
                       href={repo.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline flex items-center gap-1"
+                      className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                     >
                       <ExternalLink className="h-3 w-3" />
                       View on GitHub

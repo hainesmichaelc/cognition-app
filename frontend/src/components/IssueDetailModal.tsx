@@ -378,7 +378,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
               href={repoData ? `${repoData.url}/issues/${issue.number}` : '#'}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800"
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
             >
               <ExternalLink className="h-4 w-4" />
             </a>
@@ -388,7 +388,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
               href={`https://github.com/${issue.author}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
+              className="text-blue-600 dark:text-blue-400 hover:underline"
             >
               {issue.author}
             </a> • {issue.age_days} days ago
@@ -406,15 +406,15 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
 
           <div>
             <h4 className="font-semibold mb-2">Description</h4>
-            <div className="bg-gray-50 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
-              <div className="prose prose-sm max-w-none prose-img:rounded-lg prose-img:shadow-md prose-ul:space-y-1 prose-ol:space-y-1 prose-li:marker:text-gray-600">
+            <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-md overflow-y-auto" style={{maxHeight: '500px'}}>
+              <div className="prose prose-sm max-w-none dark:prose-invert prose-img:rounded-lg prose-img:shadow-md prose-ul:space-y-1 prose-ol:space-y-1 prose-li:marker:text-zinc-600 dark:prose-li:marker:text-zinc-400">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
                     img: (props) => (
                       <img
                         {...props}
-                        className="max-w-full h-auto rounded-md border border-gray-200 shadow-sm my-4"
+                        className="max-w-full h-auto rounded-md border border-zinc-200 dark:border-zinc-700 shadow-sm my-4"
                         style={{maxHeight: '400px', objectFit: 'contain'}}
                         loading="lazy"
                         onError={(e) => {
@@ -432,14 +432,14 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                       <li {...props} className="ml-4" />
                     ),
                     a: (props) => (
-                      <a {...props} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer" />
+                      <a {...props} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer" />
                     ),
                     code: (props) => {
                       const {className} = props;
                       const isInline = !className || !className.includes('language-');
                       return isInline ?
-                        <code {...props} className="bg-gray-200 px-1 py-0.5 rounded text-sm" /> :
-                        <code {...props} className="block bg-gray-200 p-2 rounded text-sm overflow-x-auto" />
+                        <code {...props} className="bg-zinc-200 dark:bg-zinc-800 px-1 py-0.5 rounded text-sm" /> :
+                        <code {...props} className="block bg-zinc-200 dark:bg-zinc-800 p-2 rounded text-sm overflow-x-auto" />
                     }
                   }}
                 >
@@ -470,12 +470,12 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                         const files = Array.from(e.target.files || [])
                         setUploadedFiles(files)
                       }}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      className="block w-full text-sm text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 dark:file:bg-blue-900 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-800"
                     />
                     {uploadedFiles.length > 0 && (
                       <div className="mt-2 space-y-1">
                         {uploadedFiles.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                          <div key={index} className="flex items-center justify-between text-sm text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800 px-2 py-1 rounded">
                             <span>{file.name} ({(file.size / 1024).toFixed(1)} KB)</span>
                             <button
                               onClick={() => {
@@ -521,14 +521,14 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                   <div className="flex items-center gap-2">
                     Devin Analysis
                     {isPolling && !isSessionCompleted(session) && session.status !== 'new' && (
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
                     )}
                   </div>
                   <a
                     href={session.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800"
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                   >
                     <ExternalLink className="h-4 w-4" />
                   </a>
@@ -553,7 +553,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                         href={session.pull_request.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                        className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
                       >
                         <ExternalLink className="h-3 w-3" />
                         PR
@@ -577,7 +577,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
 
                       <div>
                         <h5 className="font-semibold mb-2">Summary</h5>
-                        <p className="text-sm text-gray-700">{normalizedOutput.summary}</p>
+                        <p className="text-sm text-zinc-700 dark:text-zinc-300">{normalizedOutput.summary}</p>
                       </div>
 
                       <div className="grid md:grid-cols-2 gap-4">
@@ -602,7 +602,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                             {normalizedOutput.dependencies.length > 0 ? (
                               normalizedOutput.dependencies.map((dep, index) => (
                                 <li key={index} className="flex items-start gap-2">
-                                  <span className="text-blue-500 mt-1">•</span>
+                                  <span className="text-blue-500 dark:text-blue-400 mt-1">•</span>
                                   {dep}
                                 </li>
                               ))
@@ -623,7 +623,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                                 {step.done ? (
                                   <CheckCircle className="h-4 w-4 mt-1 text-green-500" />
                                 ) : isCurrentStep && session.status === SESSION_STATES.RUNNING && !isSessionCompleted(session) && normalizedOutput.status === SESSION_PHASES.EXECUTING ? (
-                                  <Loader2 className="h-4 w-4 mt-1 animate-spin text-blue-600" />
+                                  <Loader2 className="h-4 w-4 mt-1 animate-spin text-blue-600 dark:text-blue-400" />
                                 ) : (
                                   <CheckCircle className="h-4 w-4 mt-1 text-gray-300" />
                                 )}
@@ -643,12 +643,12 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                   return (
                     <>
                       {session.status === SESSION_STATES.BLOCKED && !isPlanApproved && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                      <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
-                          <Clock className="h-5 w-5 text-blue-600" />
-                          <h5 className="font-semibold text-blue-800">Plan Review Required</h5>
+                          <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                          <h5 className="font-semibold text-blue-800 dark:text-blue-300">Plan Review Required</h5>
                         </div>
-                        <p className="text-sm text-blue-700 mb-4">
+                        <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
                           Please review the implementation plan above and choose how to proceed:
                         </p>
                         <div className="flex gap-2 flex-wrap">
@@ -665,12 +665,12 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
 
 
                     {isSessionCompleted(session) && !isPlanApproved && !session.pull_request?.url && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                      <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-3">
-                          <CheckCircle className="h-5 w-5 text-blue-600" />
-                          <h5 className="font-semibold text-blue-800">Plan Review Required</h5>
+                          <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                          <h5 className="font-semibold text-blue-800 dark:text-blue-300">Plan Review Required</h5>
                         </div>
-                        <p className="text-sm text-blue-700 mb-4">
+                        <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
                           Please review the implementation plan above. Do you approve this plan for execution?
                         </p>
                         <AlertDialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
@@ -724,7 +724,7 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
                           href={session.pull_request.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+                          className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
                         >
                           <ExternalLink className="h-4 w-4" />
                           View Pull Request
@@ -737,10 +737,10 @@ export default function IssueDetailModal({ issue, isOpen, onClose, repoData }: I
 
                 {/* Follow-up message UI - always available for active sessions */}
                 {session.status === SESSION_STATES.RUNNING && !isSessionCompleted(session) && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md p-3 mb-4">
                     <div className="flex items-start gap-2">
-                      <MessageSquare className="h-4 w-4 text-blue-600 mt-0.5" />
-                      <div className="text-sm text-blue-700">
+                      <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
+                      <div className="text-sm text-blue-700 dark:text-blue-300">
                         <p className="font-medium mb-1">
                           Devin is actively working on this issue
                         </p>
