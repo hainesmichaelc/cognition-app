@@ -156,7 +156,7 @@ export default function RepoNavigator() {
           })
         }
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to connect to backend. Please check your internet connection and try again.",
